@@ -512,7 +512,7 @@ with tab8:
 
     # ✅ Verificar si el DataFrame `combined_df` está definido
     if "combined_df" in locals() or "combined_df" in globals():
-        data_summary = combined_df.to_string()
+        data_summary = player_summary_df.to_string()
     else:
         data_summary = "No scrim data available."
 
