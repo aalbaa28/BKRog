@@ -2,13 +2,10 @@ import streamlit as st
 import pandas as pd
 import json
 import os
-from pandasai import Agent
-from pandasai.llm import HuggingFaceLLM
+import pandasai as pai
 
 # -------- CONFIGURAR IA
 
-# Configurar el modelo (usamos Mistral 7B desde Hugging Face)
-llm = HuggingFaceLLM(model="mistralai/Mistral-7B-Instruct-v0.1")
 
 # Inicializar PandasAI con el modelo
 
@@ -300,8 +297,6 @@ if json_data:
             """, unsafe_allow_html=True
         )
 
-    # ------------- CREACION DE IA
-    pandas_ai = Agent(df, config={"llm": llm})
     # Apply side filter
     if side_filter != 'All':
         combined_df = combined_df[combined_df['side'] == side_filter]
@@ -502,15 +497,37 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 with tab8:
     st.header("🤖 AI Assistant - Ask about Scrim Stats")
 
+        # Configurar la API key de PandasAI (BambooLLM)
+    pai.api_key.set("PAI-ee0e18dc-e1dd-483d-9583-3e7e5b3bd707")  # Reemplaza con tu API key
+
+    # Crear un campo de entrada para que el usuario haga preguntas
     user_input = st.chat_input("Ask me anything about scrim data...")
 
+    # Mostrar el historial del chat
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # Mostrar mensajes anteriores
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # Procesar la pregunta y mostrar la respuesta
     if user_input:
+        # Mostrar la pregunta del usuario
         with st.chat_message("user"):
             st.markdown(user_input)
 
-        # Use PandasAI to generate a response based on the DataFrame
-        response = pandas_ai.run(combined_df, prompt=user_input)
+        # Agregar la pregunta al historial del chat
+        st.session_state.messages.append({"role": "user", "content": user_input})
 
+        # Generar la respuesta usando PandasAI (BambooLLM)
+        response = combined_df.chat(user_input)  # Usar el método .chat() de PandasAI
+
+        # Mostrar la respuesta del asistente
         with st.chat_message("assistant"):
             st.markdown(response)
+
+        # Agregar la respuesta al historial del chat
+        st.session_state.messages.append({"role": "assistant", "content": response})
 
