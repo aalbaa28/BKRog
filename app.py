@@ -498,7 +498,11 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 with tab8:
     st.header("🤖 AI Assistant - Ask about Scrim Stats")
     # Cargar un modelo de Hugging Face
-    generator = pipeline("text-generation", model="gpt2")  # Usa GPT-2 como ejemplo
+    # Convertir el DataFrame a texto para usarlo como contexto
+    data_summary = combined_df.to_string()
+
+    # Cargar un modelo de Hugging Face (usamos GPT-2 como ejemplo)
+    generator = pipeline("text-generation", model="gpt2")
 
     # Crear un campo de entrada para que el usuario haga preguntas
     user_input = st.chat_input("Ask me anything about scrim data...")
@@ -521,20 +525,19 @@ with tab8:
         # Agregar la pregunta al historial del chat
         st.session_state.messages.append({"role": "user", "content": user_input})
 
-        # Convertir el DataFrame a texto y truncar si es necesario
-        data_summary = combined_df.to_string(max_rows=10)  # Limita el número de filas
-
-        # Generar la respuesta usando el modelo
-        prompt = f"You are a helpful assistant that answers questions about scrim data.\n\nData:\n{data_summary}\n\nQuestion: {user_input}"
-        response = generator(
-            prompt,
-            max_length=200,  # Aumenta la longitud máxima
-            max_new_tokens=50,  # Limita la longitud de la respuesta
-            num_return_sequences=1
-        )
-
-        # Extraer la respuesta
-        assistant_response = response[0]["generated_text"]
+        # Generar la respuesta usando el modelo de Hugging Face
+        try:
+            prompt = f"You are a helpful assistant that answers questions about scrim data. Here is the data:\n{data_summary}\n\nQuestion: {user_input}\nAnswer:"
+            response = generator(
+                prompt,
+                max_length=200,  # Aumenta la longitud máxima
+                max_new_tokens=50,  # Limita la longitud de la respuesta
+                num_return_sequences=1
+            )
+            assistant_response = response[0]["generated_text"].split("Answer:")[-1].strip()
+        except Exception as e:
+            assistant_response = "Sorry, I'm currently unable to process your request. Please try again later."
+            st.error(f"Error: {e}")
 
         # Mostrar la respuesta del asistente
         with st.chat_message("assistant"):
