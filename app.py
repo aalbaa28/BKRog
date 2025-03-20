@@ -170,8 +170,56 @@ if json_data:
         combined_df = pd.concat([combined_df, df], ignore_index=True)
         combined_df = combined_df.sort_values(by='Date', ascending=False)
 
-    # Filter by side (blue or red)
+        # Filter by side (blue or red)
     side_filter = st.sidebar.selectbox("Filter by side", ['All', 'blue', 'red'])
+
+    # Cambiar el color de la web según la selección
+    if side_filter == 'blue':
+        st.markdown(
+            """
+            <style>
+            body {
+                background-color: #E0F7FA;  /* Fondo azul claro */
+                color: #0288D1;  /* Texto en azul oscuro */
+            }
+            .stButton>button {
+                background-color: #0288D1;  /* Botón azul */
+                color: white;  /* Texto del botón en blanco */
+            }
+            </style>
+            """, unsafe_allow_html=True
+        )
+    elif side_filter == 'red':
+        st.markdown(
+            """
+            <style>
+            body {
+                background-color: #FFEBEE;  /* Fondo rojo claro */
+                color: #C62828;  /* Texto en rojo oscuro */
+            }
+            .stButton>button {
+                background-color: #C62828;  /* Botón rojo */
+                color: white;  /* Texto del botón en blanco */
+            }
+            </style>
+            """, unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            """
+            <style>
+            body {
+                background-color: white;  /* Fondo blanco */
+                color: black;  /* Texto en negro */
+            }
+            .stButton>button {
+                background-color: #2c3e50;  /* Botón gris oscuro */
+                color: white;  /* Texto del botón en blanco */
+            }
+            </style>
+            """, unsafe_allow_html=True
+        )
+
 
     # Apply side filter
     if side_filter != 'All':
