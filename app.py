@@ -182,6 +182,7 @@ if json_data:
             """
             <style>
             .stApp {
+                background-color: #F5FDFF;
             }
             h1, h2, h3, h4, h5, h6 {
                 color: #0288D1;  /* Texto en azul oscuro para títulos y negritas */
@@ -206,6 +207,7 @@ if json_data:
             """
             <style>
             .stApp {
+                background-color: #FFF5F5;
             }
             h1, h2, h3, h4, h5, h6 {
                 color: #C62828;  /* Texto en rojo oscuro para títulos y negritas */
