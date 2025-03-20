@@ -2,3 +2,4 @@ streamlit
 pandas
 huggingface_hub
 transformers
+openai>=1.0.0
