@@ -511,16 +511,12 @@ except RuntimeError:
 with tab8:
     st.header("🤖 AI Assistant - Ask about Scrim Stats")
 
-    
-    # ✅ Cargar clave de OpenAI desde secrets de Streamlit
-    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-
-    # Now you can use this key to make API calls
-    openai.api_key = OPENAI_API_KEY
-
-    # ✅ Crear el asistente de datos usando `pandas-ai`
+    # ✅ Verificar que el DataFrame combinado esté disponible
     if "combined_df" in locals() or "combined_df" in globals():
-        df = SmartDataframe(combined_df, config={"llm": OpenAI(api_key=openai.api_key)})
+
+        # Crear el objeto `SmartDataframe` que se integra con PandasAI
+        df = SmartDataframe(combined_df)
+
     else:
         st.error("No scrim data available.")
         st.stop()
@@ -543,12 +539,13 @@ with tab8:
 
         st.session_state.messages.append({"role": "user", "content": user_input})
 
-        # ✅ Consultar la IA con el DataFrame real
+        # ✅ Consultar la IA con el DataFrame real usando PandasAI
         try:
-            assistant_response = df.chat(user_input)
+            with st.spinner('Consultando los datos...'):
+                assistant_response = df.chat(user_input)
         except Exception as e:
-            assistant_response = "Sorry, I couldn't process your request."
-            st.error(f"Error: {e}")
+            assistant_response = f"Sorry, I couldn't process your request. Error: {e}"
+            st.error(assistant_response)
 
         with st.chat_message("assistant"):
             st.markdown(assistant_response)
