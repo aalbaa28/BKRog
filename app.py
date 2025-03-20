@@ -28,6 +28,7 @@ def extract_player_data(participant):
     champion_image_url = f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/{champion_id}.png"
     
     data = {
+        'riotIdGameName': participant['riotIdGameName'],
         'championImage': champion_image_url,  # URL of the champion's image
         'championName': participant['championName'],
         'win': participant['win'],
