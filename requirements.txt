@@ -1,7 +1,8 @@
-streamlit
-torch
-transformers
-pandas
-numpy
-openai
-git+https://github.com/gventuri/pandas-ai.git
+streamlit==1.43.2
+torch==2.6.0
+transformers==4.49.0
+pandas==2.2.3
+numpy==2.2.4
+openai==1.68.0
+pandasai==3.0.0b15
+scipy==1.11.1  # Versión compatible con Python 3.12
