@@ -5,8 +5,7 @@ import os
 import torch
 import asyncio
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, pipeline, GPTNeoForCausalLM
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from huggingface_hub import InferenceApi
 
 # -------- CONFIGURAR IA
 
@@ -499,14 +498,10 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
         st.success(f"CSV saved as {csv_file}")
 
     
-# En este ejemplo, usamos GPT-2 para simplificar, pero puedes usar GPT-Neo o cualquier otro modelo que prefieras
-model = GPTNeoForCausalLM.from_pretrained("EleutherAI/gpt-neo-125M")
-tokenizer = GPT2Tokenizer.from_pretrained("EleutherAI/gpt-neo-125M")
+# Inicializar la API de Hugging Face
+api = InferenceApi(repo_id="EleutherAI/gpt-neo-2.7B")
 
-# Step 3: Set up the text-generation pipeline with the Hugging Face model
-llm = pipeline("text-generation", model=model, tokenizer=tokenizer)
-
-# Step 4: Create a prompt template that includes the DataFrame structure
+# Step 4: Crear una plantilla de prompt que incluya la estructura del DataFrame
 prompt_template = """
 Given the following DataFrame:
 {dataframe}
@@ -514,29 +509,34 @@ Please answer the following question about the data:
 {question}
 """
 
-# Step 5: Function to interact with the DataFrame
-def query_data(question):
-    # Convert the DataFrame to text
+# Step 5: Función para interactuar con el DataFrame usando la API de Hugging Face
+def query_data(question, df):
+    # Convertir el DataFrame a texto
     dataframe_text = df.to_string(index=False)
     
-    # Format the prompt with the DataFrame and user question
+    # Formatear el prompt con el DataFrame y la pregunta del usuario
     prompt = prompt_template.format(dataframe=dataframe_text, question=question)
     
-    # Use the model to generate a response
-    response = llm(prompt, max_length=200, num_return_sequences=1)
+    # Usar la API para generar una respuesta
+    response = api(inputs=prompt, max_length=200, num_return_sequences=1)
     
-    return response[0]['generated_text']
+    # Extraer el texto generado de la respuesta
+    if isinstance(response, list) and len(response) > 0:
+        return response[0]['generated_text']
+    else:
+        return "No se pudo generar una respuesta."
 
 with tab8:
     st.header("🤖 AI Assistant - Ask about Scrim Stats")
     # User input for the question
-    user_question = st.text_input("Ask me anything about the scrim data:")
-
-    # Process the input and display the answer
+    # Entrada de texto para la pregunta del usuario
+    user_question = st.text_input("Enter your question:")
+    
+    # Procesar la entrada y mostrar la respuesta
     if user_question:
-        # Call the function to query the model
-        answer = query_data(user_question)
+        # Llamar a la función para consultar el modelo
+        answer = query_data(user_question, df)
         
-        # Display the response
+        # Mostrar la respuesta
         st.subheader("AI Response:")
         st.write(answer)
