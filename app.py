@@ -173,8 +173,6 @@ if json_data:
 
         # Filter by side (blue or red)
 
-    # Agregar título
-    st.title("Scrim Stats")
     
     side_filter = st.sidebar.selectbox("Filter by side", ['All', 'blue', 'red'])
 
