@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import os
 from openai import OpenAI
+from transformers import pipeline
 
 # -------- CONFIGURAR IA
 
@@ -495,9 +496,10 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
         st.success(f"CSV saved as {csv_file}")
 
 with tab8:
-    # Configurar la API key de OpenAI
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     st.header("🤖 AI Assistant - Ask about Scrim Stats")
+    # Cargar un modelo de Hugging Face
+    generator = pipeline("text-generation", model="gpt2")  # Usa GPT-2 como ejemplo
+
     # Crear un campo de entrada para que el usuario haga preguntas
     user_input = st.chat_input("Ask me anything about scrim data...")
 
@@ -519,20 +521,15 @@ with tab8:
         # Agregar la pregunta al historial del chat
         st.session_state.messages.append({"role": "user", "content": user_input})
 
-        # Convertir el DataFrame a texto para enviarlo a OpenAI
+        # Convertir el DataFrame a texto para enviarlo al modelo
         data_summary = combined_df.to_string()
 
-        # Generar la respuesta usando OpenAI (nueva API)
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that answers questions about scrim data."},
-                {"role": "user", "content": f"Data:\n{data_summary}\n\nQuestion: {user_input}"}
-            ]
-        )
+        # Generar la respuesta usando el modelo
+        prompt = f"You are a helpful assistant that answers questions about scrim data.\n\nData:\n{data_summary}\n\nQuestion: {user_input}"
+        response = generator(prompt, max_length=100, num_return_sequences=1)
 
         # Extraer la respuesta
-        assistant_response = response.choices[0].message.content
+        assistant_response = response[0]["generated_text"]
 
         # Mostrar la respuesta del asistente
         with st.chat_message("assistant"):
