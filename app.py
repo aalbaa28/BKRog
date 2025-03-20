@@ -30,7 +30,7 @@ def extract_player_data(participant):
     data = {
         'championImage': champion_image_url,  # URL of the champion's image
         'championName': participant['championName'],
-        'win': participant['win'],
+        'win': 'Win' if participant['win']==True else 'Lose',
         'kda': round(challenges['kda'], 2),
         'deaths': participant['deaths'],
         'goldPerMinute': round(challenges['goldPerMinute'], 2),
@@ -193,6 +193,7 @@ if json_data:
                 with col3:
                     st.write(f"**{row['championName']} vs {row['EnemyChampion']}**")
                     st.write(f"Date: {row['Date'].strftime('%Y-%m-%d')}")
+                    st.write(f"{row['win']}")
                     st.write(f"KDA: {row['kda']} | Deaths: {row['deaths']}")
                     st.write(f"Gold per minute: {row['goldPerMinute']} | Damage per minute: {row['damagePerMinute']}")
                     st.write(f"Team damage percentage: {row['teamDamagePercentage']*100:.2f}% | Side: {row['side']}")
