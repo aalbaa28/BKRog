@@ -3,7 +3,7 @@ import pandas as pd
 import json
 import os
 from pandasai import Agent
-from pandasai.llm.huggingface import HuggingFaceLLM
+from pandasai.llm import HuggingFaceLLM
 
 # -------- CONFIGURAR IA
 
