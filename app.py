@@ -247,7 +247,9 @@ if json_data:
             with col2:
                 st.subheader(f"{row['championName']}")
                 st.write(f"**Games Played**: {row['side']}")
-                st.write(f"**Winrate**: {row['winrate']}")
+                winrate_color = "green" if row['WinRate'] >= 50 else "red"
+                st.markdown(f"<p style='color:{winrate_color};'><b>Winrate:</b> {row['WinRate']:.2f}%</p>", unsafe_allow_html=True)
+
                 st.write(f"**Average KDA**: {row['kda']:.2f}")
                 st.write(f"**Average Deaths**: {row['deaths']:.2f}")
                 st.write(f"**Gold per Minute**: {row['goldPerMinute']:.2f}")
