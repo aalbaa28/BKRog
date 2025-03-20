@@ -11,7 +11,6 @@ from pandasai.llm.huggingface import HuggingFaceLLM
 llm = HuggingFaceLLM(model="mistralai/Mistral-7B-Instruct-v0.1")
 
 # Inicializar PandasAI con el modelo
-pandas_ai = Agent(llm)
 
 
 # Function to load all JSON files from a folder and combine them into a DataFrame
@@ -301,7 +300,8 @@ if json_data:
             """, unsafe_allow_html=True
         )
 
-
+    # ------------- CREACION DE IA
+    pandas_ai = Agent(df, config={"llm": llm})
     # Apply side filter
     if side_filter != 'All':
         combined_df = combined_df[combined_df['side'] == side_filter]
