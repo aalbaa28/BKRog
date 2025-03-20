@@ -170,24 +170,8 @@ if json_data:
         combined_df = pd.concat([combined_df, df], ignore_index=True)
         combined_df = combined_df.sort_values(by='Date', ascending=False)
 
-        # Valores predeterminados
-    DEFAULT_SIDE_FILTER = 'All'
-    DEFAULT_CHAMPION_FILTER = 'All'
-    DEFAULT_START_DATE = pd.to_datetime('2025-03-01')
-    DEFAULT_END_DATE = pd.to_datetime('2025-05-31')
-
-    # Configuración de session_state para mantener el estado de los filtros
-    if 'side_filter' not in st.session_state:
-        st.session_state.side_filter = DEFAULT_SIDE_FILTER
-    if 'champion_filter' not in st.session_state:
-        st.session_state.champion_filter = DEFAULT_CHAMPION_FILTER
-    if 'start_date' not in st.session_state:
-        st.session_state.start_date = DEFAULT_START_DATE
-    if 'end_date' not in st.session_state:
-        st.session_state.end_date = DEFAULT_END_DATE
-
-    # Filter by side (blue or red)
-    side_filter = st.sidebar.selectbox("Filter by side", ['All', 'blue', 'red'], index=['All', 'blue', 'red'].index(st.session_state.side_filter))
+        # Filter by side (blue or red)
+    side_filter = st.sidebar.selectbox("Filter by side", ['All', 'blue', 'red'])
 
     # Cambiar el color de la web según la selección
     # Cambiar el color de la web según la selección
@@ -304,47 +288,33 @@ if json_data:
         )
 
 
-    # Filtro por campeón
+    # Apply side filter
+    if side_filter != 'All':
+        combined_df = combined_df[combined_df['side'] == side_filter]
+
+    # Get the list of unique champions
     champion_list = combined_df['championName'].unique().tolist()
-    champion_list.sort()  # Ordenar alfabéticamente
-    champion_list.insert(0, "All")  # Agregar opción "All" para desactivar el filtro
+    champion_list.sort()  # Sort alphabetically
+    champion_list.insert(0, "All")  # Add "All" option to disable the filter
 
-    champion_filter = st.sidebar.selectbox("Filter by champion", champion_list, index=champion_list.index(st.session_state.champion_filter))
+    # Filter by champion
+    champion_filter = st.sidebar.selectbox("Filter by champion", champion_list)
 
-    # Filtro por fecha
-    start_date = st.sidebar.date_input("Start Date", st.session_state.start_date)  # Fecha por defecto
-    end_date = st.sidebar.date_input("End Date", st.session_state.end_date)  # Fecha por defecto
+    # Apply champion filter
+    if champion_filter != "All":
+        combined_df = combined_df[combined_df['championName'] == champion_filter]
 
-    # Convertir las fechas seleccionadas a formato datetime
+        # Add the date filters in the sidebar
+    start_date = st.sidebar.date_input("Start Date", pd.to_datetime('2025-03-01'))  # Default start date
+    end_date = st.sidebar.date_input("End Date", pd.to_datetime('2025-03-31'))  # Default end date
+
+    # Convertir las fechas seleccionadas a formato datetime (asegurarse de incluir la hora en end_date)
     start_date = pd.to_datetime(start_date)
-    end_date = pd.to_datetime(end_date).replace(hour=23, minute=59, second=59)
+    end_date = pd.to_datetime(end_date).replace(hour=23, minute=59, second=59)  # Aseguramos que sea hasta el final del día
 
     # Filtrar el DataFrame por el rango de fechas
     if 'Date' in combined_df.columns:
         combined_df = combined_df[(combined_df['Date'] >= start_date) & (combined_df['Date'] <= end_date)]
-
-    # Aplicar los filtros
-    if side_filter != 'All':
-        combined_df = combined_df[combined_df['side'] == side_filter]
-    if champion_filter != "All":
-        combined_df = combined_df[combined_df['championName'] == champion_filter]
-
-    # Botón de Reset
-    if st.sidebar.button('Reset Filters'):
-        # Resetear todos los filtros a sus valores predeterminados usando session_state
-        st.session_state.side_filter = DEFAULT_SIDE_FILTER
-        st.session_state.champion_filter = DEFAULT_CHAMPION_FILTER
-        st.session_state.start_date = DEFAULT_START_DATE
-        st.session_state.end_date = DEFAULT_END_DATE
-
-        # Actualizar los widgets directamente sin necesidad de recargar la página
-        side_filter = DEFAULT_SIDE_FILTER
-        champion_filter = DEFAULT_CHAMPION_FILTER
-        start_date = DEFAULT_START_DATE
-        end_date = DEFAULT_END_DATE
-
-        # Mostrar mensaje de confirmación
-        st.sidebar.success('Filters reset to default.')
 
 
     # Create tabs for each position
