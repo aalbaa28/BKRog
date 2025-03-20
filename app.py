@@ -505,14 +505,14 @@ torch.device("cpu")
 try:
     asyncio.get_running_loop()
 except RuntimeError:
-    asyncio.run(asyncio.sleep(0))  # Asegura que haya un loop activo
+    asyncio.set_event_loop(asyncio.new_event_loop())
 
 with tab8:
     st.header("🤖 AI Assistant - Ask about Scrim Stats")
 
     # ✅ Verificar si el DataFrame `combined_df` está definido
     if "combined_df" in locals() or "combined_df" in globals():
-        data_summary = combined_df.to_string()  # Convertir DataFrame a texto
+        data_summary = combined_df.to_string()
     else:
         data_summary = "No scrim data available."
 
@@ -521,7 +521,7 @@ with tab8:
         generator = pipeline(
             "text-generation",
             model="gpt2",
-            device=0 if torch.cuda.is_available() else -1  # Usa GPU si está disponible
+            device=-1  # ✅ FORZAMOS CPU para evitar errores en Streamlit Cloud
         )
     except Exception as e:
         st.error(f"Error loading AI model: {e}")
@@ -540,11 +540,9 @@ with tab8:
     user_input = st.chat_input("Ask me anything about scrim data...")
 
     if user_input:
-        # 🔹 Mostrar pregunta del usuario
         with st.chat_message("user"):
             st.markdown(user_input)
 
-        # 🔹 Agregar pregunta al historial del chat
         st.session_state.messages.append({"role": "user", "content": user_input})
 
         # ✅ Generar respuesta usando el modelo de IA
@@ -560,20 +558,17 @@ with tab8:
                 prompt,
                 max_length=200,
                 max_new_tokens=50,
-                truncation=True,  # Evita advertencias de Hugging Face
+                truncation=True,
                 num_return_sequences=1
             )
 
-            # 🔹 Extraer solo la respuesta generada
             assistant_response = response[0]["generated_text"].split("AI answer:")[-1].strip()
 
         except Exception as e:
-            assistant_response = "Sorry, I couldn't process your request. Please try again later."
+            assistant_response = "Sorry, I couldn't process your request."
             st.error(f"Generation error: {e}")
 
-        # 🔹 Mostrar respuesta del asistente
         with st.chat_message("assistant"):
             st.markdown(assistant_response)
 
-        # 🔹 Agregar respuesta al historial del chat
         st.session_state.messages.append({"role": "assistant", "content": assistant_response})
