@@ -499,7 +499,7 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 
     
 # Inicializar la API de Hugging Face
-api = InferenceApi(repo_id="EleutherAI/gpt-neo-2.7B")
+api = InferenceApi(repo_id="EleutherAI/gpt-neo-125M")
 
 # Step 4: Crear una plantilla de prompt que incluya la estructura del DataFrame
 prompt_template = """
