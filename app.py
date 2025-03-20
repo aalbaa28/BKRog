@@ -150,7 +150,7 @@ def get_player_summary(df):
                 'Avg Deaths': avg_deaths,
                 'Avg Gold per Minute': avg_gold_per_minute,
                 'Avg Damage per Minute': avg_damage_per_minute,
-                'Avg Team Damage %': avg_team_damage_percentage * 100
+                'Avg Team Damage %': avg_team_damage_percentage
             })
     
     return pd.DataFrame(player_summary)
@@ -302,34 +302,53 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
         col1, col2 = st.columns([2, 1])  # Adjust the column widths as needed
 
         with col1:
-            st.subheader(f"{row['Player']}")
+            # Display player name with a nice heading
+            st.markdown(f"### {row['Player']}")
+            
+            # Show the general stats for the player
             st.write(f"**Total Games**: {row['Total Games']}")
             st.write(f"**Wins**: {row['Wins']}")
             
             winrate_color = "green" if row['WinRate'] >= 50 else "red"
-            st.markdown(f"<p style='color:{winrate_color};'><b>Winrate</b>: {row['WinRate']:.2f}%</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='color:{winrate_color}; font-size: 18px;'><b>Winrate</b>: {row['WinRate']:.2f}%</p>", unsafe_allow_html=True)
             
             st.write(f"**Avg KDA**: {row['Avg KDA']:.2f}")
             st.write(f"**Avg Deaths**: {row['Avg Deaths']:.2f}")
             st.write(f"**Avg Gold per Minute**: {row['Avg Gold per Minute']:.2f}")
             st.write(f"**Avg Damage per Minute**: {row['Avg Damage per Minute']:.2f}")
             st.write(f"**Avg Team Damage %**: {row['Avg Team Damage %']*100:.2f}%")
+            
+            # Add some visual enhancement like emojis for the winrate
+            winrate_icon = "🟢" if row['WinRate'] >= 50 else "🔴"
+            st.markdown(f"<p style='color:{winrate_color}; font-size: 20px;'>Winrate Status: {winrate_icon}</p>", unsafe_allow_html=True)
 
         with col2:
-            # You can add a small image, chart or any additional info for each player
-            winrate_color = "green" if row['WinRate'] >= 50 else "red"
-            st.markdown(f"<span style='color:{winrate_color}; font-size: 25px;'>🔼</span>", unsafe_allow_html=True)  # You can use a simple icon or image
+            # Optionally add a small image, chart or any additional info for each player
+            st.markdown(f"<span style='color:{winrate_color}; font-size: 25px;'>🔼</span>", unsafe_allow_html=True)  # Icon to show winrate trend
     
-    # Show the player summary table below the details
+    # Now we show the player summary table with some color formatting to make it more visual
     st.subheader("Player Summary Table")
-    st.dataframe(player_summary_df.style.format({
-        'WinRate': "{:.2f}%", 
-        'Avg KDA': "{:.2f}", 
-        'Avg Deaths': "{:.2f}", 
-        'Avg Gold per Minute': "{:.2f}",
-        'Avg Damage per Minute': "{:.2f}",
-        'Avg Team Damage %': "{:.2f}%"
-    }))
+    
+    # Use `st.dataframe` with custom styling to highlight values
+    def highlight_winrate(val):
+        color = 'green' if val >= 50 else 'red'
+        return f'background-color: {color}; color: white;'
+
+    # Applying styles to the dataframe
+    styled_df = player_summary_df.style.applymap(highlight_winrate, subset=['WinRate'])
+    
+    # Display the styled dataframe
+    st.dataframe(styled_df)
+
+    # Optionally, show a bar chart to compare Winrates visually
+    st.subheader("Winrate Comparison")
+    
+    # Create a bar chart for winrates
+    winrate_chart_data = player_summary_df[['Player', 'WinRate']]
+    winrate_chart_data.set_index('Player', inplace=True)
+
+    # Create a bar chart
+    st.bar_chart(winrate_chart_data)
 
     # Save the filtered results as a CSV
     if st.button('Save CSV'):
