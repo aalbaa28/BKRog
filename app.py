@@ -193,7 +193,6 @@ if json_data:
             }
             /* Estilos para las tabs */
             .stTabs [role="tab"] {
-                background-color: #B3E5FC;  /* Fondo de las tabs (azul más claro) */
                 color: #01579B;  /* Color del texto de las tabs (azul oscuro) */
             }
             .stTabs [role="tab"][aria-selected="true"] {
@@ -219,7 +218,6 @@ if json_data:
             }
             /* Estilos para las tabs */
             .stTabs [role="tab"] {
-                background-color: #FFCDD2;  /* Fondo de las tabs (rojo más claro) */
                 color: #B71C1C;  /* Color del texto de las tabs (rojo oscuro) */
             }
             .stTabs [role="tab"][aria-selected="true"] {
