@@ -150,7 +150,7 @@ def get_player_summary(df):
                 'Avg Deaths': avg_deaths,
                 'Avg Gold per Minute': avg_gold_per_minute,
                 'Avg Damage per Minute': avg_damage_per_minute,
-                'Avg Team Damage %': avg_team_damage_percentage
+                'Avg Team Damage %': avg_team_damage_percentage * 100
             })
     
     return pd.DataFrame(player_summary)
@@ -290,22 +290,50 @@ if json_data:
             
             st.write("---")
 
-
 with tab7:  # Assuming this is the last tab. You can rename it if needed.
     st.header("By Player")
     
     # Get player summary DataFrame
     player_summary_df = get_player_summary(combined_df)
-    
-    # Display the player summary in a table
-    st.dataframe(player_summary_df)
 
-    # Optionally, you can highlight WinRate color
+    # Loop through each player to display a more attractive summary
     for index, row in player_summary_df.iterrows():
-        winrate_color = "green" if row['WinRate'] >= 50 else "red"
-        st.markdown(f"<p style='color:{winrate_color};'><b>Winrate for {row['Player']}</b>: {row['WinRate']:.2f}%</p>", unsafe_allow_html=True)
+        # Create two columns to display the player's stats and the win rate
+        col1, col2 = st.columns([2, 1])  # Adjust the column widths as needed
+
+        with col1:
+            st.subheader(f"{row['Player']}")
+            st.write(f"**Total Games**: {row['Total Games']}")
+            st.write(f"**Wins**: {row['Wins']}")
+            
+            winrate_color = "green" if row['WinRate'] >= 50 else "red"
+            st.markdown(f"<p style='color:{winrate_color};'><b>Winrate</b>: {row['WinRate']:.2f}%</p>", unsafe_allow_html=True)
+            
+            st.write(f"**Avg KDA**: {row['Avg KDA']:.2f}")
+            st.write(f"**Avg Deaths**: {row['Avg Deaths']:.2f}")
+            st.write(f"**Avg Gold per Minute**: {row['Avg Gold per Minute']:.2f}")
+            st.write(f"**Avg Damage per Minute**: {row['Avg Damage per Minute']:.2f}")
+            st.write(f"**Avg Team Damage %**: {row['Avg Team Damage %']*100:.2f}%")
+
+        with col2:
+            # You can add a small image, chart or any additional info for each player
+            winrate_color = "green" if row['WinRate'] >= 50 else "red"
+            st.markdown(f"<span style='color:{winrate_color}; font-size: 25px;'>🔼</span>", unsafe_allow_html=True)  # You can use a simple icon or image
+    
+    # Show the player summary table below the details
+    st.subheader("Player Summary Table")
+    st.dataframe(player_summary_df.style.format({
+        'WinRate': "{:.2f}%", 
+        'Avg KDA': "{:.2f}", 
+        'Avg Deaths': "{:.2f}", 
+        'Avg Gold per Minute': "{:.2f}",
+        'Avg Damage per Minute': "{:.2f}",
+        'Avg Team Damage %': "{:.2f}%"
+    }))
+
     # Save the filtered results as a CSV
     if st.button('Save CSV'):
         csv_file = 'filtered_matchups.csv'
         combined_df.to_csv(csv_file, index=False)
         st.success(f"CSV saved as {csv_file}")
+
