@@ -500,8 +500,8 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 
     
 # En este ejemplo, usamos GPT-2 para simplificar, pero puedes usar GPT-Neo o cualquier otro modelo que prefieras
-model = GPTNeoForCausalLM.from_pretrained("EleutherAI/gpt-neo-2.7B")
-tokenizer = GPT2Tokenizer.from_pretrained("EleutherAI/gpt-neo-2.7B")
+model = GPTNeoForCausalLM.from_pretrained("EleutherAI/gpt-neo-125M")
+tokenizer = GPT2Tokenizer.from_pretrained("EleutherAI/gpt-neo-125M")
 
 # Step 3: Set up the text-generation pipeline with the Hugging Face model
 llm = pipeline("text-generation", model=model, tokenizer=tokenizer)
