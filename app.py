@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import os
-import pandasai as pai
+import openai
 
 # -------- CONFIGURAR IA
 
@@ -495,12 +495,12 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
         st.success(f"CSV saved as {csv_file}")
 
 with tab8:
+    # Configurar la API key de OpenAI
+    openai.api_key = "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"
     st.header("🤖 AI Assistant - Ask about Scrim Stats")
 
-        # Configurar la API key de PandasAI (BambooLLM)
-    pai.api_key.set("PAI-ee0e18dc-e1dd-483d-9583-3e7e5b3bd707")  # Reemplaza con tu API key
-
-    # Crear un campo de entrada para que el usuario haga preguntas
+            # Configurar la API key de PandasAI (BambooLLM)
+        # Crear un campo de entrada para que el usuario haga preguntas
     user_input = st.chat_input("Ask me anything about scrim data...")
 
     # Mostrar el historial del chat
@@ -521,13 +521,25 @@ with tab8:
         # Agregar la pregunta al historial del chat
         st.session_state.messages.append({"role": "user", "content": user_input})
 
-        # Generar la respuesta usando PandasAI (BambooLLM)
-        response = combined_df.chat(user_input)  # Usar el método .chat() de PandasAI
+        # Convertir el DataFrame a texto para enviarlo a OpenAI
+        data_summary = combined_df.to_string()
+
+        # Generar la respuesta usando OpenAI
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that answers questions about scrim data."},
+                {"role": "user", "content": f"Data:\n{data_summary}\n\nQuestion: {user_input}"}
+            ]
+        )
+
+        # Extraer la respuesta
+        assistant_response = response.choices[0].message["content"]
 
         # Mostrar la respuesta del asistente
         with st.chat_message("assistant"):
-            st.markdown(response)
+            st.markdown(assistant_response)
 
         # Agregar la respuesta al historial del chat
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state.messages.append({"role": "assistant", "content": assistant_response})
 
