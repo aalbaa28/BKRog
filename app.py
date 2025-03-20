@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import os
-import openai
+from openai import OpenAI
 
 # -------- CONFIGURAR IA
 
@@ -496,7 +496,7 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 
 with tab8:
     # Configurar la API key de OpenAI
-    openai.api_key = "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"
+    client = OpenAI(api_key= "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")
     st.header("🤖 AI Assistant - Ask about Scrim Stats")
 
             # Configurar la API key de PandasAI (BambooLLM)
