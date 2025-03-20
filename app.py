@@ -177,14 +177,15 @@ if json_data:
     # Cambiar el color de la web según la selección
     # Cambiar el color de la web según la selección
     # Cambiar el color de la web según la selección
+   # Cambiar el color de la web según la selección
     if side_filter == 'blue':
         st.markdown(
             """
             <style>
             .stApp {
-                background-color: #F5FDFF;
+               
             }
-            h1, h2, h3, h4, h5, h6 {
+            h1, h2, h3, h4, h5, h6, strong {
                 color: #0288D1;  /* Texto en azul oscuro para títulos y negritas */
             }
             .stButton>button {
@@ -193,11 +194,22 @@ if json_data:
             }
             /* Estilos para las tabs */
             .stTabs [role="tab"] {
+                background-color: #E0F7FA;  /* Fondo de las tabs (azul claro) */
                 color: #01579B;  /* Color del texto de las tabs (azul oscuro) */
+                font-size: 18px;  /* Tamaño de la letra más grande */
+                font-family: 'Arial', sans-serif;  /* Tipografía bonita */
+                font-weight: bold;  /* Texto en negrita */
+                padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
+                border-radius: 10px;  /* Bordes redondeados */
             }
             .stTabs [role="tab"][aria-selected="true"] {
                 background-color: #0288D1;  /* Fondo de la tab seleccionada (azul) */
                 color: white;  /* Color del texto de la tab seleccionada (blanco) */
+                font-size: 18px;  /* Tamaño de la letra más grande */
+                font-family: 'Arial', sans-serif;  /* Tipografía bonita */
+                font-weight: bold;  /* Texto en negrita */
+                padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
+                border-radius: 10px;  /* Bordes redondeados */
             }
             </style>
             """, unsafe_allow_html=True
@@ -207,9 +219,9 @@ if json_data:
             """
             <style>
             .stApp {
-                background-color: #FFF5F5;
+                
             }
-            h1, h2, h3, h4, h5, h6 {
+            h1, h2, h3, h4, h5, h6, strong {
                 color: #C62828;  /* Texto en rojo oscuro para títulos y negritas */
             }
             .stButton>button {
@@ -218,11 +230,22 @@ if json_data:
             }
             /* Estilos para las tabs */
             .stTabs [role="tab"] {
+                background-color: #FFEBEE;  /* Fondo de las tabs (rojo claro) */
                 color: #B71C1C;  /* Color del texto de las tabs (rojo oscuro) */
+                font-size: 18px;  /* Tamaño de la letra más grande */
+                font-family: 'Arial', sans-serif;  /* Tipografía bonita */
+                font-weight: bold;  /* Texto en negrita */
+                padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
+                border-radius: 10px;  /* Bordes redondeados */
             }
             .stTabs [role="tab"][aria-selected="true"] {
                 background-color: #C62828;  /* Fondo de la tab seleccionada (rojo) */
                 color: white;  /* Color del texto de la tab seleccionada (blanco) */
+                font-size: 18px;  /* Tamaño de la letra más grande */
+                font-family: 'Arial', sans-serif;  /* Tipografía bonita */
+                font-weight: bold;  /* Texto en negrita */
+                padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
+                border-radius: 10px;  /* Bordes redondeados */
             }
             </style>
             """, unsafe_allow_html=True
@@ -232,7 +255,7 @@ if json_data:
             """
             <style>
             .stApp {
-                background-color: white;  /* Fondo blanco */
+                
             }
             h1, h2, h3, h4, h5, h6, strong {
                 color: black;  /* Texto en negro para títulos y negritas */
@@ -243,46 +266,28 @@ if json_data:
             }
             /* Estilos para las tabs */
             .stTabs [role="tab"] {
+                background-color: #f0f0f0;  /* Fondo de las tabs (gris claro) */
                 color: #2c3e50;  /* Color del texto de las tabs (gris oscuro) */
+                font-size: 18px;  /* Tamaño de la letra más grande */
+                font-family: 'Arial', sans-serif;  /* Tipografía bonita */
+                font-weight: bold;  /* Texto en negrita */
+                padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
+                border-radius: 10px;  /* Bordes redondeados */
             }
             .stTabs [role="tab"][aria-selected="true"] {
                 background-color: #2c3e50;  /* Fondo de la tab seleccionada (gris oscuro) */
                 color: white;  /* Color del texto de la tab seleccionada (blanco) */
+                font-size: 18px;  /* Tamaño de la letra más grande */
+                font-family: 'Arial', sans-serif;  /* Tipografía bonita */
+                font-weight: bold;  /* Texto en negrita */
+                padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
+                border-radius: 10px;  /* Bordes redondeados */
             }
             </style>
             """, unsafe_allow_html=True
         )
 
 
-    st.markdown(
-    """
-    <style>
-    .streamlit-expanderHeader {
-        font-size: 24px !important;  /* Aumentar el tamaño de la letra */
-        font-weight: bold;  /* Hacer el texto más grueso */
-        color: #0288D1;  /* Puedes cambiar este color si lo deseas */
-        font-family: 'Helvetica', sans-serif;  /* Cambiar la fuente */
-    }
-
-    .stTabs>div>div>button {
-        font-size: 20px !important;  /* Aumentar el tamaño de la letra en las pestañas */
-        font-weight: bold;
-        color: #0288D1;  /* Cambiar color de la letra */
-        font-family: 'Arial', sans-serif;  /* Cambiar la fuente de las pestañas */
-    }
-
-    .stTabs>div>div>button:focus {
-        background-color: #0288D1;  /* Cambiar color al hacer clic */
-        color: white;  /* Texto blanco cuando se selecciona */
-    }
-
-    .stTabs>div>div>button:hover {
-        background-color: #0288D1;  /* Fondo al pasar el mouse */
-        color: white;  /* Texto blanco al pasar el mouse */
-    }
-    </style>
-    """, unsafe_allow_html=True
-)
     # Apply side filter
     if side_filter != 'All':
         combined_df = combined_df[combined_df['side'] == side_filter]
