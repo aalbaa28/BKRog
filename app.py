@@ -1,11 +1,6 @@
 import streamlit as st
 import pandas as pd
 import json
-import os
-import torch
-import asyncio
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, pipeline, GPTNeoForCausalLM
-from huggingface_hub import InferenceApi
 
 # -------- CONFIGURAR IA
 
