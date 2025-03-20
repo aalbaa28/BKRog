@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import json
 import os
+import torch
+import asyncio
 from openai import OpenAI
 from transformers import pipeline
 
@@ -495,54 +497,83 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
         combined_df.to_csv(csv_file, index=False)
         st.success(f"CSV saved as {csv_file}")
 
+    
+# 🔹 Forzar PyTorch a usar CPU en Streamlit Cloud
+torch.device("cpu")
+
+# 🔹 Solucionar el error de asyncio en Streamlit
+try:
+    asyncio.get_running_loop()
+except RuntimeError:
+    asyncio.run(asyncio.sleep(0))  # Asegura que haya un loop activo
+
 with tab8:
     st.header("🤖 AI Assistant - Ask about Scrim Stats")
-    # Cargar un modelo de Hugging Face
-    # Convertir el DataFrame a texto para usarlo como contexto
-    data_summary = combined_df.to_string()
 
-    # Cargar un modelo de Hugging Face (usamos GPT-2 como ejemplo)
-    generator = pipeline("text-generation", model="gpt2")
+    # ✅ Verificar si el DataFrame `combined_df` está definido
+    if "combined_df" in locals() or "combined_df" in globals():
+        data_summary = combined_df.to_string()  # Convertir DataFrame a texto
+    else:
+        data_summary = "No scrim data available."
 
-    # Crear un campo de entrada para que el usuario haga preguntas
-    user_input = st.chat_input("Ask me anything about scrim data...")
+    # ✅ Cargar modelo de Hugging Face con manejo de errores
+    try:
+        generator = pipeline(
+            "text-generation",
+            model="gpt2",
+            device=0 if torch.cuda.is_available() else -1  # Usa GPU si está disponible
+        )
+    except Exception as e:
+        st.error(f"Error loading AI model: {e}")
+        st.stop()
 
-    # Mostrar el historial del chat
+    # ✅ Inicializar historial de chat en la sesión
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Mostrar mensajes anteriores
+    # ✅ Mostrar historial de chat
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # Procesar la pregunta y mostrar la respuesta
+    # ✅ Campo de entrada para usuario
+    user_input = st.chat_input("Ask me anything about scrim data...")
+
     if user_input:
-        # Mostrar la pregunta del usuario
+        # 🔹 Mostrar pregunta del usuario
         with st.chat_message("user"):
             st.markdown(user_input)
 
-        # Agregar la pregunta al historial del chat
+        # 🔹 Agregar pregunta al historial del chat
         st.session_state.messages.append({"role": "user", "content": user_input})
 
-        # Generar la respuesta usando el modelo de Hugging Face
+        # ✅ Generar respuesta usando el modelo de IA
         try:
-            prompt = f"You are a helpful assistant that answers questions about scrim data. Here is the data:\n{data_summary}\n\nQuestion: {user_input}\nAnswer:"
+            prompt = (
+                f"You are an AI assistant that analyzes scrim data. "
+                f"Here is the data:\n{data_summary}\n\n"
+                f"User question: {user_input}\n"
+                f"AI answer:"
+            )
+
             response = generator(
                 prompt,
-                max_length=200,  # Aumenta la longitud máxima
-                max_new_tokens=50,  # Limita la longitud de la respuesta
+                max_length=200,
+                max_new_tokens=50,
+                truncation=True,  # Evita advertencias de Hugging Face
                 num_return_sequences=1
             )
-            assistant_response = response[0]["generated_text"].split("Answer:")[-1].strip()
-        except Exception as e:
-            assistant_response = "Sorry, I'm currently unable to process your request. Please try again later."
-            st.error(f"Error: {e}")
 
-        # Mostrar la respuesta del asistente
+            # 🔹 Extraer solo la respuesta generada
+            assistant_response = response[0]["generated_text"].split("AI answer:")[-1].strip()
+
+        except Exception as e:
+            assistant_response = "Sorry, I couldn't process your request. Please try again later."
+            st.error(f"Generation error: {e}")
+
+        # 🔹 Mostrar respuesta del asistente
         with st.chat_message("assistant"):
             st.markdown(assistant_response)
 
-        # Agregar la respuesta al historial del chat
+        # 🔹 Agregar respuesta al historial del chat
         st.session_state.messages.append({"role": "assistant", "content": assistant_response})
-
