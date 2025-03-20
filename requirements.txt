@@ -1,10 +1,5 @@
 streamlit
-torch
 transformers
 pandas
 numpy
-openai
-pandasai
-scipy
-langchain
 
