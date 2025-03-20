@@ -393,15 +393,15 @@ if json_data:
             
             with col2:
                 st.subheader(f"{row['championName']}")
-                st.write(f"**Games Played**: {row['side']}")
+                st.write(f"Games Played: {row['side']}")
                 winrate_color = "green" if row['winrate'] >= 50 else "red"
                 st.markdown(f"<p style='color:{winrate_color};'><b>Winrate:</b> {row['winrate']:.2f}%</p>", unsafe_allow_html=True)
 
-                st.write(f"**Average KDA**: {row['kda']:.2f}")
-                st.write(f"**Average Deaths**: {row['deaths']:.2f}")
-                st.write(f"**Gold per Minute**: {row['goldPerMinute']:.2f}")
-                st.write(f"**Damage per Minute**: {row['damagePerMinute']:.2f}")
-                st.write(f"**Team Damage Percentage**: {row['teamDamagePercentage']*100:.2f}%")
+                st.write(f"Average KDA: {row['kda']:.2f}")
+                st.write(f"Average Deaths: {row['deaths']:.2f}")
+                st.write(f"Gold per Minute: {row['goldPerMinute']:.2f}")
+                st.write(f"Damage per Minute: {row['damagePerMinute']:.2f}")
+                st.write(f"Team Damage Percentage: {row['teamDamagePercentage']*100:.2f}%")
             
             st.write("---")
 
