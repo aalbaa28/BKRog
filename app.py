@@ -417,8 +417,11 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
         col1, col2 = st.columns([2, 1])  # Adjust the column widths as needed
 
         with col1:
-
-            st.subheader({row['Player']})
+            # Estilo bonito para mostrar el nombre del jugador
+            st.markdown(
+                f"<h3 style='color:#7f8c8d; font-weight:bold;'>{row['Player']}</h3>", 
+                unsafe_allow_html=True
+            )
 
             st.write(f"**Total Games**: {row['Total Games']}")
             st.write(f"**Wins**: {row['Wins']}")
