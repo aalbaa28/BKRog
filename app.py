@@ -243,7 +243,6 @@ if json_data:
             }
             /* Estilos para las tabs */
             .stTabs [role="tab"] {
-                background-color: #f0f0f0;  /* Fondo de las tabs (gris claro) */
                 color: #2c3e50;  /* Color del texto de las tabs (gris oscuro) */
             }
             .stTabs [role="tab"][aria-selected="true"] {
@@ -254,6 +253,36 @@ if json_data:
             """, unsafe_allow_html=True
         )
 
+
+    st.markdown(
+    """
+    <style>
+    .streamlit-expanderHeader {
+        font-size: 24px !important;  /* Aumentar el tamaño de la letra */
+        font-weight: bold;  /* Hacer el texto más grueso */
+        color: #0288D1;  /* Puedes cambiar este color si lo deseas */
+        font-family: 'Helvetica', sans-serif;  /* Cambiar la fuente */
+    }
+
+    .stTabs>div>div>button {
+        font-size: 20px !important;  /* Aumentar el tamaño de la letra en las pestañas */
+        font-weight: bold;
+        color: #0288D1;  /* Cambiar color de la letra */
+        font-family: 'Arial', sans-serif;  /* Cambiar la fuente de las pestañas */
+    }
+
+    .stTabs>div>div>button:focus {
+        background-color: #0288D1;  /* Cambiar color al hacer clic */
+        color: white;  /* Texto blanco cuando se selecciona */
+    }
+
+    .stTabs>div>div>button:hover {
+        background-color: #0288D1;  /* Fondo al pasar el mouse */
+        color: white;  /* Texto blanco al pasar el mouse */
+    }
+    </style>
+    """, unsafe_allow_html=True
+)
     # Apply side filter
     if side_filter != 'All':
         combined_df = combined_df[combined_df['side'] == side_filter]
