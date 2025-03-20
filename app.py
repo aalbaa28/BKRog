@@ -175,28 +175,33 @@ if json_data:
 
     # Cambiar el color de la web según la selección
     # Cambiar el color de la web según la selección
+    # Cambiar el color de la web según la selección
     if side_filter == 'blue':
         st.markdown(
-        """
-        <style>
-        .stApp {
-            background-color: #E0F7FA;  /* Fondo azul claro */
-            color: #0288D1;  /* Texto en azul oscuro */
-        }
-        .stButton>button {
-            background-color: #0288D1;  /* Botón azul */
-            color: white;  /* Texto del botón en blanco */
-        }
-        </style>
-        """, unsafe_allow_html=True
-    )
+            """
+            <style>
+            .stApp {
+                background-color: #E0F7FA;  /* Fondo azul claro */
+            }
+            h1, h2, h3, h4, h5, h6, strong {
+                color: #0288D1;  /* Texto en azul oscuro para títulos y negritas */
+            }
+            .stButton>button {
+                background-color: #0288D1;  /* Botón azul */
+                color: white;  /* Texto del botón en blanco */
+            }
+            </style>
+            """, unsafe_allow_html=True
+        )
     elif side_filter == 'red':
         st.markdown(
             """
             <style>
             .stApp {
                 background-color: #FFEBEE;  /* Fondo rojo claro */
-                color: #C62828;  /* Texto en rojo oscuro */
+            }
+            h1, h2, h3, h4, h5, h6, strong {
+                color: #C62828;  /* Texto en rojo oscuro para títulos y negritas */
             }
             .stButton>button {
                 background-color: #C62828;  /* Botón rojo */
@@ -211,7 +216,9 @@ if json_data:
             <style>
             .stApp {
                 background-color: white;  /* Fondo blanco */
-                color: black;  /* Texto en negro */
+            }
+            h1, h2, h3, h4, h5, h6, strong {
+                color: black;  /* Texto en negro para títulos y negritas */
             }
             .stButton>button {
                 background-color: #2c3e50;  /* Botón gris oscuro */
@@ -220,6 +227,7 @@ if json_data:
             </style>
             """, unsafe_allow_html=True
         )
+
 
     # Apply side filter
     if side_filter != 'All':
