@@ -121,7 +121,38 @@ def calculate_average_by_champion(df, position=None):
     
     return avg_df
 
+# Function to generate player summary (win rate, average stats)
+def get_player_summary(df):
+    player_summary = []
+    
+    players_of_interest = ["BKR Szygenda", "BKR Rhilech", "BKR OMON", "WD BOOSHI", "BKR Doss"]
+    
+    for player in players_of_interest:
+        player_data = df[df['riotIdGameName'] == player]
+        
+        if not player_data.empty:
+            total_games = len(player_data)
+            wins = player_data['win'].sum()
+            win_rate = (wins / total_games) * 100  # Calculate win rate
+            avg_kda = player_data['kda'].mean()
+            avg_deaths = player_data['deaths'].mean()
+            avg_gold_per_minute = player_data['goldPerMinute'].mean()
+            avg_damage_per_minute = player_data['damagePerMinute'].mean()
+            avg_team_damage_percentage = player_data['teamDamagePercentage'].mean()
 
+            player_summary.append({
+                'Player': player,
+                'Total Games': total_games,
+                'Wins': wins,
+                'WinRate': win_rate,
+                'Avg KDA': avg_kda,
+                'Avg Deaths': avg_deaths,
+                'Avg Gold per Minute': avg_gold_per_minute,
+                'Avg Damage per Minute': avg_damage_per_minute,
+                'Avg Team Damage %': avg_team_damage_percentage
+            })
+    
+    return pd.DataFrame(player_summary)
 
 # Load data from the folder
 json_folder = json_folder = "March 18"  # Ahora buscará dentro del repo en Streamlit Cloud
@@ -171,7 +202,7 @@ if json_data:
 
 
     # Create tabs for each position
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Top", "Jgl", "Mid", "Adc", "Supp", "By Champion"])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Top", "Jgl", "Mid", "Adc", "Supp", "By Champion", "By Player"])
 
     def display_table_with_images(df, position):
         st.header(position)
@@ -258,6 +289,20 @@ if json_data:
             
             st.write("---")
 
+
+with tab7:  # Assuming this is the last tab. You can rename it if needed.
+    st.header("By Player")
+    
+    # Get player summary DataFrame
+    player_summary_df = get_player_summary(combined_df)
+    
+    # Display the player summary in a table
+    st.dataframe(player_summary_df)
+
+    # Optionally, you can highlight WinRate color
+    for index, row in player_summary_df.iterrows():
+        winrate_color = "green" if row['WinRate'] >= 50 else "red"
+        st.markdown(f"<p style='color:{winrate_color};'><b>Winrate for {row['Player']}</b>: {row['WinRate']:.2f}%</p>", unsafe_allow_html=True)
     # Save the filtered results as a CSV
     if st.button('Save CSV'):
         csv_file = 'filtered_matchups.csv'
