@@ -1,5 +1,5 @@
 streamlit
 pandas
-pandasai==0.0.6
+pandasai
 huggingface_hub
 transformers
