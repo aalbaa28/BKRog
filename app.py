@@ -6,7 +6,6 @@ import torch
 import asyncio
 from transformers import pipeline
 from pandasai import SmartDataframe
-from pandasai.llm.openai import OpenAI
 
 # -------- CONFIGURAR IA
 
