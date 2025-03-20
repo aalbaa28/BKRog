@@ -2,6 +2,17 @@ import streamlit as st
 import pandas as pd
 import json
 import os
+from pandasai import PandasAI
+from pandasai.llm.huggingface import HuggingFaceLLM
+
+# -------- CONFIGURAR IA
+
+# Configurar el modelo (usamos Mistral 7B desde Hugging Face)
+llm = HuggingFaceLLM(model="mistralai/Mistral-7B-Instruct-v0.1")
+
+# Inicializar PandasAI con el modelo
+pandas_ai = PandasAI(llm)
+
 
 # Function to load all JSON files from a folder and combine them into a DataFrame
 def load_json_data(folder):
@@ -321,7 +332,7 @@ if json_data:
 
     
     # Create tabs for each position
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Top", "Jgl", "Mid", "Adc", "Supp", "By Champion", "By Player"])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Top", "Jgl", "Mid", "Adc", "Supp", "By Champion", "By Player", "AI Assistant"])
 
     def display_table_with_images(df, position):
         st.header(position)
@@ -487,4 +498,19 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
         csv_file = 'filtered_matchups.csv'
         combined_df.to_csv(csv_file, index=False)
         st.success(f"CSV saved as {csv_file}")
+
+with tab8:
+    st.header("🤖 AI Assistant - Ask about Scrim Stats")
+
+    user_input = st.chat_input("Ask me anything about scrim data...")
+
+    if user_input:
+        with st.chat_message("user"):
+            st.markdown(user_input)
+
+        # Use PandasAI to generate a response based on the DataFrame
+        response = pandas_ai.run(combined_df, prompt=user_input)
+
+        with st.chat_message("assistant"):
+            st.markdown(response)
 
