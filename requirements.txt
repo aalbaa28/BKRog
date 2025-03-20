@@ -1,5 +1,5 @@
-streamlit
-pandas
-huggingface_hub
-transformers
-torch
+streamlit==1.31.0
+torch==2.2.1+cpu -f https://download.pytorch.org/whl/torch_stable.html
+transformers==4.38.2
+pandas==2.2.1
+numpy==1.26.4
