@@ -120,7 +120,8 @@ def calculate_average_by_champion(df, position=None):
 
 
 # Load data from the folder
-json_folder = 'd:\\Scrims\\March 18'  # Change this to your folder path
+json_folder = json_folder = "March 18"  # Ahora buscará dentro del repo en Streamlit Cloud
+  # Change this to your folder path
 json_data = load_json_data(json_folder)
 
 if json_data:
