@@ -499,10 +499,7 @@ with tab8:
     st.header("🤖 AI Assistant - Ask about Scrim Stats")
 
         # Configurar la API key de PandasAI (BambooLLM)
-    llm = BambooLLM(api_key="PAI-ee0e18dc-e1dd-483d-9583-3e7e5b3bd707")  # Reemplaza con tu API key
-
-    # Inicializar PandasAI con el DataFrame y el modelo
-    pandas_ai = pai.Agent(combined_df, config={"llm": llm})
+    pai.api_key.set("PAI-ee0e18dc-e1dd-483d-9583-3e7e5b3bd707")  # Reemplaza con tu API key
 
     # Crear un campo de entrada para que el usuario haga preguntas
     user_input = st.chat_input("Ask me anything about scrim data...")
