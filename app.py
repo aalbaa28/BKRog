@@ -176,6 +176,7 @@ if json_data:
     # Cambiar el color de la web según la selección
     # Cambiar el color de la web según la selección
     # Cambiar el color de la web según la selección
+    # Cambiar el color de la web según la selección
     if side_filter == 'blue':
         st.markdown(
             """
@@ -189,6 +190,15 @@ if json_data:
             .stButton>button {
                 background-color: #0288D1;  /* Botón azul */
                 color: white;  /* Texto del botón en blanco */
+            }
+            /* Estilos para las tabs */
+            .stTabs [role="tab"] {
+                background-color: #B3E5FC;  /* Fondo de las tabs (azul más claro) */
+                color: #01579B;  /* Color del texto de las tabs (azul oscuro) */
+            }
+            .stTabs [role="tab"][aria-selected="true"] {
+                background-color: #0288D1;  /* Fondo de la tab seleccionada (azul) */
+                color: white;  /* Color del texto de la tab seleccionada (blanco) */
             }
             </style>
             """, unsafe_allow_html=True
@@ -207,6 +217,15 @@ if json_data:
                 background-color: #C62828;  /* Botón rojo */
                 color: white;  /* Texto del botón en blanco */
             }
+            /* Estilos para las tabs */
+            .stTabs [role="tab"] {
+                background-color: #FFCDD2;  /* Fondo de las tabs (rojo más claro) */
+                color: #B71C1C;  /* Color del texto de las tabs (rojo oscuro) */
+            }
+            .stTabs [role="tab"][aria-selected="true"] {
+                background-color: #C62828;  /* Fondo de la tab seleccionada (rojo) */
+                color: white;  /* Color del texto de la tab seleccionada (blanco) */
+            }
             </style>
             """, unsafe_allow_html=True
         )
@@ -224,10 +243,18 @@ if json_data:
                 background-color: #2c3e50;  /* Botón gris oscuro */
                 color: white;  /* Texto del botón en blanco */
             }
+            /* Estilos para las tabs */
+            .stTabs [role="tab"] {
+                background-color: #f0f0f0;  /* Fondo de las tabs (gris claro) */
+                color: #2c3e50;  /* Color del texto de las tabs (gris oscuro) */
+            }
+            .stTabs [role="tab"][aria-selected="true"] {
+                background-color: #2c3e50;  /* Fondo de la tab seleccionada (gris oscuro) */
+                color: white;  /* Color del texto de la tab seleccionada (blanco) */
+            }
             </style>
             """, unsafe_allow_html=True
         )
-
 
     # Apply side filter
     if side_filter != 'All':
