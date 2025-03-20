@@ -337,8 +337,14 @@ if json_data:
         st.session_state.start_date = DEFAULT_START_DATE
         st.session_state.end_date = DEFAULT_END_DATE
 
-        # Re-renderizar la página
-        st.experimental_rerun()
+        # Actualizar los widgets directamente sin necesidad de recargar la página
+        side_filter = DEFAULT_SIDE_FILTER
+        champion_filter = DEFAULT_CHAMPION_FILTER
+        start_date = DEFAULT_START_DATE
+        end_date = DEFAULT_END_DATE
+
+        # Mostrar mensaje de confirmación
+        st.sidebar.success('Filters reset to default.')
 
 
     # Create tabs for each position
