@@ -297,50 +297,50 @@ if json_data:
     if side_filter != 'All':
         combined_df = combined_df[combined_df['side'] == side_filter]
 
-    # Filtro por campeón
-champion_list = combined_df['championName'].unique().tolist()
-champion_list.sort()  # Ordenar alfabéticamente
-champion_list.insert(0, "All")  # Agregar opción "All" para desactivar el filtro
+        # Filtro por campeón
+    champion_list = combined_df['championName'].unique().tolist()
+    champion_list.sort()  # Ordenar alfabéticamente
+    champion_list.insert(0, "All")  # Agregar opción "All" para desactivar el filtro
 
-champion_filter = st.sidebar.selectbox("Filter by champion", champion_list, index=champion_list.index(DEFAULT_CHAMPION_FILTER))
+    champion_filter = st.sidebar.selectbox("Filter by champion", champion_list, index=champion_list.index(DEFAULT_CHAMPION_FILTER))
 
-# Filtro por fecha
-start_date = st.sidebar.date_input("Start Date", DEFAULT_START_DATE)  # Fecha por defecto
-end_date = st.sidebar.date_input("End Date", DEFAULT_END_DATE)  # Fecha por defecto
+    # Filtro por fecha
+    start_date = st.sidebar.date_input("Start Date", DEFAULT_START_DATE)  # Fecha por defecto
+    end_date = st.sidebar.date_input("End Date", DEFAULT_END_DATE)  # Fecha por defecto
 
-# Convertir las fechas seleccionadas a formato datetime
-start_date = pd.to_datetime(start_date)
-end_date = pd.to_datetime(end_date).replace(hour=23, minute=59, second=59)
+    # Convertir las fechas seleccionadas a formato datetime
+    start_date = pd.to_datetime(start_date)
+    end_date = pd.to_datetime(end_date).replace(hour=23, minute=59, second=59)
 
-# Filtrar el DataFrame por el rango de fechas
-if 'Date' in combined_df.columns:
-    combined_df = combined_df[(combined_df['Date'] >= start_date) & (combined_df['Date'] <= end_date)]
+    # Filtrar el DataFrame por el rango de fechas
+    if 'Date' in combined_df.columns:
+        combined_df = combined_df[(combined_df['Date'] >= start_date) & (combined_df['Date'] <= end_date)]
 
-# Aplicar los filtros
-if side_filter != 'All':
-    combined_df = combined_df[combined_df['side'] == side_filter]
-if champion_filter != "All":
-    combined_df = combined_df[combined_df['championName'] == champion_filter]
+    # Aplicar los filtros
+    if side_filter != 'All':
+        combined_df = combined_df[combined_df['side'] == side_filter]
+    if champion_filter != "All":
+        combined_df = combined_df[combined_df['championName'] == champion_filter]
 
-# Botón de Reset
-if st.sidebar.button('Reset Filters'):
-    # Resetear todos los filtros a sus valores predeterminados
-    side_filter = DEFAULT_SIDE_FILTER
-    champion_filter = DEFAULT_CHAMPION_FILTER
-    start_date = DEFAULT_START_DATE
-    end_date = DEFAULT_END_DATE
+    # Botón de Reset
+    if st.sidebar.button('Reset Filters'):
+        # Resetear todos los filtros a sus valores predeterminados
+        side_filter = DEFAULT_SIDE_FILTER
+        champion_filter = DEFAULT_CHAMPION_FILTER
+        start_date = DEFAULT_START_DATE
+        end_date = DEFAULT_END_DATE
 
-    # Reiniciar los filtros en los widgets
-    st.sidebar.selectbox("Filter by side", ['All', 'blue', 'red'], index=['All', 'blue', 'red'].index(DEFAULT_SIDE_FILTER))
-    st.sidebar.selectbox("Filter by champion", champion_list, index=champion_list.index(DEFAULT_CHAMPION_FILTER))
-    st.sidebar.date_input("Start Date", DEFAULT_START_DATE)
-    st.sidebar.date_input("End Date", DEFAULT_END_DATE)
+        # Reiniciar los filtros en los widgets
+        st.sidebar.selectbox("Filter by side", ['All', 'blue', 'red'], index=['All', 'blue', 'red'].index(DEFAULT_SIDE_FILTER))
+        st.sidebar.selectbox("Filter by champion", champion_list, index=champion_list.index(DEFAULT_CHAMPION_FILTER))
+        st.sidebar.date_input("Start Date", DEFAULT_START_DATE)
+        st.sidebar.date_input("End Date", DEFAULT_END_DATE)
 
-    # Mostrar mensaje de confirmación
-    st.sidebar.success('Filters reset to default.')
+        # Mostrar mensaje de confirmación
+        st.sidebar.success('Filters reset to default.')
 
-    # Mostrar datos filtrados
-    st.write("Datos filtrados:", combined_df)
+        # Mostrar datos filtrados
+        st.write("Datos filtrados:", combined_df)
 
 
     # Create tabs for each position
