@@ -4,7 +4,7 @@ import json
 import os
 import torch
 import asyncio
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, pipeline
+from transformers import GPT2LMHeadModel, GPT2Tokenizer, pipeline, GPTNeoForCausalLM
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 
@@ -500,7 +500,7 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 
     
 # En este ejemplo, usamos GPT-2 para simplificar, pero puedes usar GPT-Neo o cualquier otro modelo que prefieras
-model = GPT2LMHeadModel.from_pretrained("EleutherAI/gpt-neo-2.7B")
+model = GPTNeoForCausalLM.from_pretrained("EleutherAI/gpt-neo-2.7B")
 tokenizer = GPT2Tokenizer.from_pretrained("EleutherAI/gpt-neo-2.7B")
 
 # Step 3: Set up the text-generation pipeline with the Hugging Face model
