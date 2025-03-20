@@ -418,10 +418,10 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 
         with col1:
             # Estilo bonito para mostrar el nombre del jugador
-            st.markdown(
+            '''st.markdown(
                 f"<h3 style='color:#3498db; font-weight:bold;'>{row['Player']}</h3>", 
                 unsafe_allow_html=True
-            )
+            )'''
 
             st.write(f"**Total Games**: {row['Total Games']}")
             st.write(f"**Wins**: {row['Wins']}")
