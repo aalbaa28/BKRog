@@ -174,6 +174,7 @@ if json_data:
     side_filter = st.sidebar.selectbox("Filter by side", ['All', 'blue', 'red'])
 
     # Cambiar el color de la web según la selección
+    # Cambiar el color de la web según la selección
     if side_filter == 'blue':
         st.markdown(
             """
