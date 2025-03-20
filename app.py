@@ -522,35 +522,32 @@ with tab8:
         st.error("No scrim data available.")
         st.stop()
 
-    with st.tabs(["Scrim Stats", "AI Assistant"])[1]:
-        st.header("🤖 AI Assistant - Ask about Scrim Stats")
+    # ✅ Inicializar historial de chat en la sesión
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-        # ✅ Inicializar historial de chat en la sesión
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
+    # ✅ Mostrar historial de chat
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-        # ✅ Mostrar historial de chat
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+    # ✅ Campo de entrada para usuario
+    user_input = st.chat_input("Ask me anything about scrim data...")
 
-        # ✅ Campo de entrada para usuario
-        user_input = st.chat_input("Ask me anything about scrim data...")
+    if user_input:
+        with st.chat_message("user"):
+            st.markdown(user_input)
 
-        if user_input:
-            with st.chat_message("user"):
-                st.markdown(user_input)
+        st.session_state.messages.append({"role": "user", "content": user_input})
 
-            st.session_state.messages.append({"role": "user", "content": user_input})
+        # ✅ Consultar la IA con el DataFrame real
+        try:
+            assistant_response = df.chat(user_input)
+        except Exception as e:
+            assistant_response = "Sorry, I couldn't process your request."
+            st.error(f"Error: {e}")
 
-            # ✅ Consultar la IA con el DataFrame real
-            try:
-                assistant_response = df.chat(user_input)
-            except Exception as e:
-                assistant_response = "Sorry, I couldn't process your request."
-                st.error(f"Error: {e}")
+        with st.chat_message("assistant"):
+            st.markdown(assistant_response)
 
-            with st.chat_message("assistant"):
-                st.markdown(assistant_response)
-
-            st.session_state.messages.append({"role": "assistant", "content": assistant_response})
+        st.session_state.messages.append({"role": "assistant", "content": assistant_response})
