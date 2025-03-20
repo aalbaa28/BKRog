@@ -15,7 +15,8 @@ def load_json_data(folder):
             with open(file_path, 'r', encoding='utf-8') as f:
                 json_data = json.load(f)
                 combined_data.append(json_data)
-        
+        # Agregar título
+        st.title("Scrim Stats")
         st.success(f"Data loaded successfully from {folder}")
         return combined_data
     except Exception as e:
