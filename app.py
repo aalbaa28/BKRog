@@ -4,8 +4,9 @@ import json
 import os
 import torch
 import asyncio
-from openai import OpenAI
 from transformers import pipeline
+from pandasai import SmartDataframe
+from pandasai.llm.openai import OpenAI
 
 # -------- CONFIGURAR IA
 
@@ -510,65 +511,46 @@ except RuntimeError:
 with tab8:
     st.header("🤖 AI Assistant - Ask about Scrim Stats")
 
-    # ✅ Verificar si el DataFrame `combined_df` está definido
-    if "combined_df" in locals() or "combined_df" in globals():
-        data_summary = player_summary_df.to_string()
-    else:
-        data_summary = "No scrim data available."
+    
+    # ✅ Cargar clave de OpenAI desde secrets de Streamlit
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
-    # ✅ Cargar modelo de Hugging Face con manejo de errores
-    try:
-        generator = pipeline(
-            "text-generation",
-            model="gpt2",
-            device=-1  # ✅ FORZAMOS CPU para evitar errores en Streamlit Cloud
-        )
-    except Exception as e:
-        st.error(f"Error loading AI model: {e}")
+    # ✅ Crear el asistente de datos usando `pandas-ai`
+    if "combined_df" in locals() or "combined_df" in globals():
+        df = SmartDataframe(combined_df, config={"llm": OpenAI(api_key=OPENAI_API_KEY)})
+    else:
+        st.error("No scrim data available.")
         st.stop()
 
-    # ✅ Inicializar historial de chat en la sesión
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    with st.tabs(["Scrim Stats", "AI Assistant"])[1]:
+        st.header("🤖 AI Assistant - Ask about Scrim Stats")
 
-    # ✅ Mostrar historial de chat
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        # ✅ Inicializar historial de chat en la sesión
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
 
-    # ✅ Campo de entrada para usuario
-    user_input = st.chat_input("Ask me anything about scrim data...")
+        # ✅ Mostrar historial de chat
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
-    if user_input:
-        with st.chat_message("user"):
-            st.markdown(user_input)
+        # ✅ Campo de entrada para usuario
+        user_input = st.chat_input("Ask me anything about scrim data...")
 
-        st.session_state.messages.append({"role": "user", "content": user_input})
+        if user_input:
+            with st.chat_message("user"):
+                st.markdown(user_input)
 
-        # ✅ Generar respuesta usando el modelo de IA
-        try:
-            prompt = (
-                f"You are an AI assistant that analyzes scrim data. "
-                f"Here is the data:\n{data_summary}\n\n"
-                f"User question: {user_input}\n"
-                f"AI answer:"
-            )
+            st.session_state.messages.append({"role": "user", "content": user_input})
 
-            response = generator(
-                prompt,
-                max_length=200,
-                max_new_tokens=50,
-                truncation=True,
-                num_return_sequences=1
-            )
+            # ✅ Consultar la IA con el DataFrame real
+            try:
+                assistant_response = df.chat(user_input)
+            except Exception as e:
+                assistant_response = "Sorry, I couldn't process your request."
+                st.error(f"Error: {e}")
 
-            assistant_response = response[0]["generated_text"].split("AI answer:")[-1].strip()
+            with st.chat_message("assistant"):
+                st.markdown(assistant_response)
 
-        except Exception as e:
-            assistant_response = "Sorry, I couldn't process your request."
-            st.error(f"Generation error: {e}")
-
-        with st.chat_message("assistant"):
-            st.markdown(assistant_response)
-
-        st.session_state.messages.append({"role": "assistant", "content": assistant_response})
+            st.session_state.messages.append({"role": "assistant", "content": assistant_response})
