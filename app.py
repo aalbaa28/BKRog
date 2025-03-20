@@ -515,9 +515,12 @@ with tab8:
     # ✅ Cargar clave de OpenAI desde secrets de Streamlit
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
+    # Now you can use this key to make API calls
+    openai.api_key = OPENAI_API_KEY
+
     # ✅ Crear el asistente de datos usando `pandas-ai`
     if "combined_df" in locals() or "combined_df" in globals():
-        df = SmartDataframe(combined_df, config={"llm": OpenAI(api_key=OPENAI_API_KEY)})
+        df = SmartDataframe(combined_df, config={"llm": OpenAI(api_key=openai.api_key)})
     else:
         st.error("No scrim data available.")
         st.stop()
