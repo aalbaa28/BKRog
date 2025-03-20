@@ -3,7 +3,6 @@ import pandas as pd
 import json
 import os
 import pandasai as pai
-from pandasai.llm.bamboollm import BambooLLM
 
 # -------- CONFIGURAR IA
 
