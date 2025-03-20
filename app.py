@@ -521,12 +521,17 @@ with tab8:
         # Agregar la pregunta al historial del chat
         st.session_state.messages.append({"role": "user", "content": user_input})
 
-        # Convertir el DataFrame a texto para enviarlo al modelo
-        data_summary = combined_df.to_string()
+        # Convertir el DataFrame a texto y truncar si es necesario
+        data_summary = combined_df.to_string(max_rows=10)  # Limita el número de filas
 
         # Generar la respuesta usando el modelo
         prompt = f"You are a helpful assistant that answers questions about scrim data.\n\nData:\n{data_summary}\n\nQuestion: {user_input}"
-        response = generator(prompt, max_length=100, num_return_sequences=1)
+        response = generator(
+            prompt,
+            max_length=200,  # Aumenta la longitud máxima
+            max_new_tokens=50,  # Limita la longitud de la respuesta
+            num_return_sequences=1
+        )
 
         # Extraer la respuesta
         assistant_response = response[0]["generated_text"]
