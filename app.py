@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import os
-from pandasai import PandasAI
+from pandasai.core import PandasAI
 from pandasai.llm.huggingface import HuggingFaceLLM
 
 # -------- CONFIGURAR IA
