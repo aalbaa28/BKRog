@@ -193,8 +193,8 @@ if json_data:
                 with col3:
                     st.write(f"**{row['championName']} vs {row['EnemyChampion']}**")
                     st.write(f"Date: {row['Date'].strftime('%Y-%m-%d')}")
-                    win_color = "green" if row["win"] else "red"
-                    st.markdown(f"<span style='color:{win_color}; font-weight:bold;'>{'Win' if row['win'] else 'Loss'}</span>", unsafe_allow_html=True)
+                    win_color = "green" if row["win"]=="Win" else "red"
+                    st.markdown(f"<span style='color:{win_color}; font-weight:bold;'>{row['win']}</span>", unsafe_allow_html=True)
 
                     st.write(f"KDA: {row['kda']} | Deaths: {row['deaths']}")
                     st.write(f"Gold per minute: {row['goldPerMinute']} | Damage per minute: {row['damagePerMinute']}")
