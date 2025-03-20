@@ -497,7 +497,7 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
         combined_df.to_csv(csv_file, index=False)
         st.success(f"CSV saved as {csv_file}")
 
-    
+'''    
 # Inicializar la API de Hugging Face
 api = InferenceApi(repo_id="EleutherAI/gpt-neo-125M")
 
@@ -539,4 +539,5 @@ with tab8:
         
         # Mostrar la respuesta
         st.subheader("AI Response:")
-        st.write(answer)
+        st.write(answer)'
+'''
