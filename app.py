@@ -496,7 +496,7 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 
 with tab8:
     # Configurar la API key de OpenAI
-    client = OpenAI(api_key= "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")
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     st.header("🤖 AI Assistant - Ask about Scrim Stats")
     # Crear un campo de entrada para que el usuario haga preguntas
     user_input = st.chat_input("Ask me anything about scrim data...")
