@@ -175,8 +175,19 @@ if json_data:
     DEFAULT_CHAMPION_FILTER = 'All'
     DEFAULT_START_DATE = pd.to_datetime('2025-03-01')
     DEFAULT_END_DATE = pd.to_datetime('2025-05-31')
-        # Filter by side (blue or red)
-    side_filter = st.sidebar.selectbox("Filter by side", ['All', 'blue', 'red'])
+
+    # Configuración de session_state para mantener el estado de los filtros
+    if 'side_filter' not in st.session_state:
+        st.session_state.side_filter = DEFAULT_SIDE_FILTER
+    if 'champion_filter' not in st.session_state:
+        st.session_state.champion_filter = DEFAULT_CHAMPION_FILTER
+    if 'start_date' not in st.session_state:
+        st.session_state.start_date = DEFAULT_START_DATE
+    if 'end_date' not in st.session_state:
+        st.session_state.end_date = DEFAULT_END_DATE
+
+    # Filter by side (blue or red)
+    side_filter = st.sidebar.selectbox("Filter by side", ['All', 'blue', 'red'], index=['All', 'blue', 'red'].index(st.session_state.side_filter))
 
     # Cambiar el color de la web según la selección
     # Cambiar el color de la web según la selección
@@ -298,11 +309,11 @@ if json_data:
     champion_list.sort()  # Ordenar alfabéticamente
     champion_list.insert(0, "All")  # Agregar opción "All" para desactivar el filtro
 
-    champion_filter = st.sidebar.selectbox("Filter by champion", champion_list, index=champion_list.index(DEFAULT_CHAMPION_FILTER))
+    champion_filter = st.sidebar.selectbox("Filter by champion", champion_list, index=champion_list.index(st.session_state.champion_filter))
 
     # Filtro por fecha
-    start_date = st.sidebar.date_input("Start Date", DEFAULT_START_DATE)  # Fecha por defecto
-    end_date = st.sidebar.date_input("End Date", DEFAULT_END_DATE)  # Fecha por defecto
+    start_date = st.sidebar.date_input("Start Date", st.session_state.start_date)  # Fecha por defecto
+    end_date = st.sidebar.date_input("End Date", st.session_state.end_date)  # Fecha por defecto
 
     # Convertir las fechas seleccionadas a formato datetime
     start_date = pd.to_datetime(start_date)
@@ -320,17 +331,14 @@ if json_data:
 
     # Botón de Reset
     if st.sidebar.button('Reset Filters'):
-        # Resetear todos los filtros a sus valores predeterminados
-        side_filter = DEFAULT_SIDE_FILTER
-        champion_filter = DEFAULT_CHAMPION_FILTER
-        start_date = DEFAULT_START_DATE
-        end_date = DEFAULT_END_DATE
+        # Resetear todos los filtros a sus valores predeterminados usando session_state
+        st.session_state.side_filter = DEFAULT_SIDE_FILTER
+        st.session_state.champion_filter = DEFAULT_CHAMPION_FILTER
+        st.session_state.start_date = DEFAULT_START_DATE
+        st.session_state.end_date = DEFAULT_END_DATE
 
-        # Re-renderizar los filtros a sus valores predeterminados
+        # Re-renderizar la página
         st.experimental_rerun()
-
-    # Mostrar los datos filtrados
-    st.write("Datos filtrados:", combined_df)
 
 
     # Create tabs for each position
