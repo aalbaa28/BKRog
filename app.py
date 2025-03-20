@@ -179,7 +179,14 @@ if json_data:
         st.markdown(
         """
         <style>
-        body { background-color: #E0F7FA; }
+        .stApp {
+            background-color: #E0F7FA;  /* Fondo azul claro */
+            color: #0288D1;  /* Texto en azul oscuro */
+        }
+        .stButton>button {
+            background-color: #0288D1;  /* Botón azul */
+            color: white;  /* Texto del botón en blanco */
+        }
         </style>
         """, unsafe_allow_html=True
     )
@@ -187,7 +194,7 @@ if json_data:
         st.markdown(
             """
             <style>
-            body {
+            .stApp {
                 background-color: #FFEBEE;  /* Fondo rojo claro */
                 color: #C62828;  /* Texto en rojo oscuro */
             }
@@ -202,7 +209,7 @@ if json_data:
         st.markdown(
             """
             <style>
-            body {
+            .stApp {
                 background-color: white;  /* Fondo blanco */
                 color: black;  /* Texto en negro */
             }
@@ -213,7 +220,6 @@ if json_data:
             </style>
             """, unsafe_allow_html=True
         )
-
 
     # Apply side filter
     if side_filter != 'All':
