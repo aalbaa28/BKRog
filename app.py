@@ -423,17 +423,17 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
                 unsafe_allow_html=True
             )
 
-            st.write(f"**Total Games**: {row['Total Games']}")
-            st.write(f"**Wins**: {row['Wins']}")
+            st.write(f"Total Games: {row['Total Games']}")
+            st.write(f"Wins: {row['Wins']}")
             
             winrate_color = "green" if row['WinRate'] >= 50 else "red"
             st.markdown(f"<p style='color:{winrate_color};'><b>Winrate</b>: {row['WinRate']:.2f}%</p>", unsafe_allow_html=True)
             
-            st.write(f"**Avg KDA**: {row['Avg KDA']:.2f}")
-            st.write(f"**Avg Deaths**: {row['Avg Deaths']:.2f}")
-            st.write(f"**Avg Gold per Minute**: {row['Avg Gold per Minute']:.2f}")
-            st.write(f"**Avg Damage per Minute**: {row['Avg Damage per Minute']:.2f}")
-            st.write(f"**Avg Team Damage %**: {row['Avg Team Damage %']*100:.2f}%")
+            st.write(f"Avg KDA: {row['Avg KDA']:.2f}")
+            st.write(f"Avg Deaths: {row['Avg Deaths']:.2f}")
+            st.write(f"Avg Gold per Minute: {row['Avg Gold per Minute']:.2f}")
+            st.write(f"Avg Damage per Minute: {row['Avg Damage per Minute']:.2f}")
+            st.write(f"Avg Team Damage %: {row['Avg Team Damage %']*100:.2f}%")
 
         with col2:
             # You can add a small image, chart or any additional info for each player
