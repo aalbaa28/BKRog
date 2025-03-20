@@ -316,7 +316,8 @@ if json_data:
     if 'Date' in combined_df.columns:
         combined_df = combined_df[(combined_df['Date'] >= start_date) & (combined_df['Date'] <= end_date)]
 
-
+    # Agregar título
+    st.title("Scrim Stats")
     # Create tabs for each position
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Top", "Jgl", "Mid", "Adc", "Supp", "By Champion", "By Player"])
 
