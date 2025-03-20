@@ -30,7 +30,7 @@ def extract_player_data(participant):
     data = {
         'championImage': champion_image_url,  # URL of the champion's image
         'championName': participant['championName'],
-        'win': 'Win' if participant['win']==True else 'Lose',
+        'win': participant['win'],
         'kda': round(challenges['kda'], 2),
         'deaths': participant['deaths'],
         'goldPerMinute': round(challenges['goldPerMinute'], 2),
@@ -109,10 +109,14 @@ def calculate_average_by_champion(df, position=None):
         'damagePerMinute': 'mean',
         'teamDamagePercentage': 'mean',
         'side': 'count',  # Count number of appearances
-        'championImage': 'first'  # Take the first image for the champion (it should be the same for each)
+        'championImage': 'first',  # Take the first image for the champion (it should be the same for each)
+        'win': 'sum'  # Sum of wins to calculate WR
     }).reset_index()
     
-    # Sort by count of appearances (side count) and then by KDA for better display
+    # Calculate Win Rate (WR) as (wins / total games) * 100
+    avg_df['winrate'] = (avg_df['win'] / avg_df['side']) * 100
+    
+    # Sort by total games played (side count) and then by KDA for better display
     avg_df = avg_df.sort_values(by='side', ascending=False)
     
     return avg_df
@@ -193,8 +197,8 @@ if json_data:
                 with col3:
                     st.write(f"**{row['championName']} vs {row['EnemyChampion']}**")
                     st.write(f"Date: {row['Date'].strftime('%Y-%m-%d')}")
-                    win_color = "green" if row["win"]=="Win" else "red"
-                    st.markdown(f"<span style='color:{win_color}; font-weight:bold;'>{row['win']}</span>", unsafe_allow_html=True)
+                    win_color = "green" if row["win"] else "red"
+                    st.markdown(f"<span style='color:{win_color}; font-weight:bold;'>{'Win' if row['win'] else 'Loss'}</span>", unsafe_allow_html=True)
 
                     st.write(f"KDA: {row['kda']} | Deaths: {row['deaths']}")
                     st.write(f"Gold per minute: {row['goldPerMinute']} | Damage per minute: {row['damagePerMinute']}")
@@ -243,6 +247,7 @@ if json_data:
             with col2:
                 st.subheader(f"{row['championName']}")
                 st.write(f"**Games Played**: {row['side']}")
+                st.write(f"**Winrate**: {row['winrate']}")
                 st.write(f"**Average KDA**: {row['kda']:.2f}")
                 st.write(f"**Average Deaths**: {row['deaths']:.2f}")
                 st.write(f"**Gold per Minute**: {row['goldPerMinute']:.2f}")
