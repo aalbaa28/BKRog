@@ -6,4 +6,5 @@ numpy
 openai
 pandasai
 scipy
+langchain
 

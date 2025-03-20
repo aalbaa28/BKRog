@@ -4,8 +4,9 @@ import json
 import os
 import torch
 import asyncio
-from transformers import pipeline
-from pandasai import SmartDataframe
+from transformers import GPT2LMHeadModel, GPT2Tokenizer, pipeline
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
 
 # -------- CONFIGURAR IA
 
@@ -498,55 +499,44 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
         st.success(f"CSV saved as {csv_file}")
 
     
-# 🔹 Forzar PyTorch a usar CPU en Streamlit Cloud
-torch.device("cpu")
+# En este ejemplo, usamos GPT-2 para simplificar, pero puedes usar GPT-Neo o cualquier otro modelo que prefieras
+model = GPT2LMHeadModel.from_pretrained("EleutherAI/gpt-neo-2.7B")
+tokenizer = GPT2Tokenizer.from_pretrained("EleutherAI/gpt-neo-2.7B")
 
-# 🔹 Solucionar el error de asyncio en Streamlit
-try:
-    asyncio.get_running_loop()
-except RuntimeError:
-    asyncio.set_event_loop(asyncio.new_event_loop())
+# Step 3: Set up the text-generation pipeline with the Hugging Face model
+llm = pipeline("text-generation", model=model, tokenizer=tokenizer)
+
+# Step 4: Create a prompt template that includes the DataFrame structure
+prompt_template = """
+Given the following DataFrame:
+{dataframe}
+Please answer the following question about the data:
+{question}
+"""
+
+# Step 5: Function to interact with the DataFrame
+def query_data(question):
+    # Convert the DataFrame to text
+    dataframe_text = df.to_string(index=False)
+    
+    # Format the prompt with the DataFrame and user question
+    prompt = prompt_template.format(dataframe=dataframe_text, question=question)
+    
+    # Use the model to generate a response
+    response = llm(prompt, max_length=200, num_return_sequences=1)
+    
+    return response[0]['generated_text']
 
 with tab8:
     st.header("🤖 AI Assistant - Ask about Scrim Stats")
+    # User input for the question
+    user_question = st.text_input("Ask me anything about the scrim data:")
 
-    # ✅ Verificar que el DataFrame combinado esté disponible
-    if "combined_df" in locals() or "combined_df" in globals():
-
-        # Crear el objeto `SmartDataframe` que se integra con PandasAI
-        df = SmartDataframe(combined_df)
-
-    else:
-        st.error("No scrim data available.")
-        st.stop()
-
-    # ✅ Inicializar historial de chat en la sesión
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    # ✅ Mostrar historial de chat
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    # ✅ Campo de entrada para usuario
-    user_input = st.chat_input("Ask me anything about scrim data...")
-
-    if user_input:
-        with st.chat_message("user"):
-            st.markdown(user_input)
-
-        st.session_state.messages.append({"role": "user", "content": user_input})
-
-        # ✅ Consultar la IA con el DataFrame real usando PandasAI
-        try:
-            with st.spinner('Consultando los datos...'):
-                assistant_response = df.chat(user_input)
-        except Exception as e:
-            assistant_response = f"Sorry, I couldn't process your request. Error: {e}"
-            st.error(assistant_response)
-
-        with st.chat_message("assistant"):
-            st.markdown(assistant_response)
-
-        st.session_state.messages.append({"role": "assistant", "content": assistant_response})
+    # Process the input and display the answer
+    if user_question:
+        # Call the function to query the model
+        answer = query_data(user_question)
+        
+        # Display the response
+        st.subheader("AI Response:")
+        st.write(answer)
