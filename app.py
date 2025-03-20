@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import os
-from pandasai import PandasAI
+from pandasai import Agent
 from pandasai.llm.huggingface import HuggingFaceLLM
 
 # -------- CONFIGURAR IA
@@ -11,7 +11,7 @@ from pandasai.llm.huggingface import HuggingFaceLLM
 llm = HuggingFaceLLM(model="mistralai/Mistral-7B-Instruct-v0.1")
 
 # Inicializar PandasAI con el modelo
-pandas_ai = PandasAI(llm)
+pandas_ai = Agent(llm)
 
 
 # Function to load all JSON files from a folder and combine them into a DataFrame
