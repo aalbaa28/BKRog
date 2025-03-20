@@ -177,19 +177,12 @@ if json_data:
     # Cambiar el color de la web según la selección
     if side_filter == 'blue':
         st.markdown(
-            """
-            <style>
-            body {
-                background-color: #E0F7FA;  /* Fondo azul claro */
-                color: #0288D1;  /* Texto en azul oscuro */
-            }
-            .stButton>button {
-                background-color: #0288D1;  /* Botón azul */
-                color: white;  /* Texto del botón en blanco */
-            }
-            </style>
-            """, unsafe_allow_html=True
-        )
+        """
+        <style>
+        body { background-color: #E0F7FA; }
+        </style>
+        """, unsafe_allow_html=True
+    )
     elif side_filter == 'red':
         st.markdown(
             """
