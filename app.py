@@ -8,8 +8,7 @@ import os
 
 # Inicializar PandasAI con el modelo
 
-
-# Function to load all JSON files from a folder and combine them into a DataFrame
+@st.cache_data  # Caching the data loading to avoid repeated processing
 def load_json_data(folder):
     combined_data = []
     try:
@@ -21,7 +20,6 @@ def load_json_data(folder):
             with open(file_path, 'r', encoding='utf-8') as f:
                 json_data = json.load(f)
                 combined_data.append(json_data)
-        # Agregar título
         st.title("Scrim Stats")
         st.success(f"Data loaded successfully from {folder}")
         return combined_data
