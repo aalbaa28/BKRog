@@ -4,5 +4,6 @@ pandas
 numpy
 google-generativeai
 scikit-learn
-sentence-transformers
-riotwatcher
+requests
+beautifulsoup4
+lxml
