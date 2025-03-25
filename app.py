@@ -657,9 +657,9 @@ class AdvancedLoLAnalyzer:
             top_matchups = matchups.head(3)
             response = f"Top matchups for {our_champ}:\n"
             for idx, row in top_matchups.iterrows():
-               response += (f"- vs {idx}: {int(row[('win', 'count')])} games, "
-                            f"{row[('win', 'mean')] * 100:.1f}% WR, "
-                            f"KDA {row[('kda', 'mean')]:.2f}\n")
+                response += (f"- vs {idx}: {int(row[('win', 'count')])} games, "
+                    f"{row[('win', 'mean')] * 100:.1f}% WR, "
+                    f"KDA {row[('kda', 'mean')]:.2f}\n")
 
             return response
         else:
@@ -774,7 +774,7 @@ with tab8:
     if st.button("Get Deep Analysis", type="primary"):
         if user_input:
             with st.spinner("🧠 Conducting full analysis..."):
-                analyzer = AdvancedLoLAnalyzer(df)
+                analyzer = AdvancedLoLAnalyzer(combined_df)
 
                 answer = analyzer.answer_question(user_input)
                 st.success(answer)
