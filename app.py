@@ -500,33 +500,93 @@ genai.configure(api_key=api_key)
 
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # Convertir todo el dataframe a formato JSON (60 filas es un tamaño manejable)
-        df_json = df.to_json(orient='records')
+        # 1. Select relevant columns
+        key_columns = [
+            'championName', 'win', 'kda', 'deaths', 'goldPerMinute',
+            'damagePerMinute', 'teamDamagePercentage', 'Position',
+            'EnemyChampion', 'Date'
+        ]
 
-        # Crear el prompt con la pregunta y el dataframe completo
-        prompt = f"Pregunta: {user_input}\n"
-        prompt += f"Datos: {df_json}"
+        # 2. Detect if query mentions specific champion
+        champion_query = next(
+            (word for word in user_input.lower().split()
+             if word in df['championName'].str.lower().values),
+            None
+        )
 
-        # Llamar a la API de Gemini con el prompt
-        model = genai.GenerativeModel('gemini-1.5-flash')  # Gratis con límites
-        response = model.generate_content(prompt)  # Aquí 'model' es tu modelo de Gemini
-
-        return response.text  # Retornar la respuesta generada por Gemini
-    except Exception as e:
-        return f"Hubo un error al procesar la solicitud: {e}"
-
-with tab8:
-    # Listar los modelos disponibles
-    #models = genai.list_models()
-    #st.write("Modelos disponibles:", models)
-    st.title("Consulta a Gemini AI")
-    st.write(combined_df.head())
-    user_input = st.text_area("Escribe tu consulta:")
-
-    if st.button("Enviar", key="chat_gemini"):
-        if user_input:
-            respuesta = get_gemini_response(user_input, combined_df)  # Pasar el dataframe completo
-            st.write("### Respuesta de Gemini:")
-            st.write(respuesta)
+        # 3. Filter data if champion specified
+        if champion_query:
+            analysis_df = df[df['championName'].str.lower() == champion_query]
+            if len(analysis_df) > 15:  # Limit to 15 most recent matches
+                analysis_df = analysis_df.sort_values('Date', ascending=False).head(15)
         else:
-            st.warning("Por favor, escribe una consulta.")
+            analysis_df = df.sample(min(20, len(df)))  # General analysis sample
+
+        # 4. Create performance summary
+        stats = []
+        for col in ['kda', 'goldPerMinute', 'damagePerMinute', 'teamDamagePercentage']:
+            if col in analysis_df.columns:
+                stats.append(
+                    f"{col}: {analysis_df[col].mean():.2f} avg "
+                    f"(max {analysis_df[col].max():.2f}, min {analysis_df[col].min():.2f})"
+                )
+
+        win_rate = f"{analysis_df['win'].mean()*100:.1f}%" if 'win' in analysis_df.columns else "N/A"
+
+        # 5. Generate optimized prompt
+        prompt = f"""Perform professional League of Legends data analysis in English.
+
+        User Question: {user_input}
+
+        Context:
+        - Data from {len(analysis_df)} matches
+        - Key stats: {', '.join(stats)}
+        - Win Rate: {win_rate}
+        - Positions: {analysis_df['Position'].value_counts().to_dict()}
+
+        Required:
+        1. Compare performance metrics when champion is specified
+        2. Highlight gold efficiency and damage contribution
+        3. Mention any counterpick patterns if enemy data exists
+        4. Keep response under 6 sentences
+        5. Use professional esports terminology
+        """
+
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
+        return response.text
+
+    except Exception as e:
+        return f"Analysis error: {str(e)}"
+
+# Streamlit Interface
+with tab8:
+    st.title("🏆 LoL Champion Performance Analyzer")
+
+    # Data preview
+    st.dataframe(combined_df[['championName', 'Position', 'kda', 'win', 'goldPerMinute']].head())
+
+    # Query examples
+    st.markdown("""
+    **Try these queries:**
+    - How does Rell perform as Support?
+    - Show KDA vs gold efficiency for ADCs
+    - Who counters Zed in mid lane?
+    - Champion with highest damage per minute
+    """)
+
+    user_input = st.text_area("Enter your champion analysis question:", height=120)
+
+    if st.button("🔍 Analyze Performance", type="primary"):
+        if user_input:
+            with st.spinner("Analyzing match data..."):
+                result = get_gemini_response(user_input, combined_df)
+
+            st.subheader("📈 Performance Report")
+            st.markdown(result)
+
+            # Optional raw data
+            with st.expander("📊 See raw stats used"):
+                st.write(analysis_df.describe() if 'analysis_df' in locals() else combined_df.describe())
+        else:
+            st.warning("Please enter a question about champion performance")
