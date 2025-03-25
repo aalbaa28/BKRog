@@ -498,19 +498,30 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 api_key = st.secrets["api_key"]
 genai.configure(api_key=api_key)
 
-# Función para obtener respuesta de Gemini
-def get_gemini_response(prompt):
-    model = genai.GenerativeModel("gemini-pro")
-    response = model.generate_content(prompt)
-    return response.text
+def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
+    try:
+        # Convertir todo el dataframe a formato JSON (60 filas es un tamaño manejable)
+        df_json = df.to_json(orient='records')
+
+        # Crear el prompt con la pregunta y el dataframe completo
+        prompt = f"Pregunta: {user_input}\n"
+        prompt += f"Datos: {df_json}"
+
+        # Llamar a la API de Gemini con el prompt
+        model = genai.GenerativeModel("gemini-pro")
+        response = model.generate_content(prompt)  # Aquí 'model' es tu modelo de Gemini
+
+        return response.text  # Retornar la respuesta generada por Gemini
+    except Exception as e:
+        return f"Hubo un error al procesar la solicitud: {e}"
 
 with tab8:
-    st.title("Chat con Gemini AI 🚀")
+    st.title("Consulta a Gemini AI")
     user_input = st.text_area("Escribe tu consulta:")
 
     if st.button("Enviar", key="chat_gemini"):
         if user_input:
-            respuesta = get_gemini_response(user_input)
+            respuesta = get_gemini_response(user_input, df)  # Pasar el dataframe completo
             st.write("### Respuesta de Gemini:")
             st.write(respuesta)
         else:
