@@ -538,7 +538,6 @@ class AdvancedLoLAnalyzer:
         """Advanced data preprocessing"""
         # Conversions and initial calculations
         df['Date'] = pd.to_datetime(df['Date'])
-        df['KDA'] = (df['kills'] + df['assists']) / df['deaths'].replace(0, 1)  # Avoid division by zero
 
         # Champion metrics
         champ_stats = df.groupby('championName').agg({
