@@ -505,138 +505,142 @@ model = genai.GenerativeModel('gemini-1.5-pro')
         
 
 # --------------------------------------
-# 1. Función para scrapear LoLalytics (Grandmaster+)
-@st.cache_data(ttl=3600)
-def scrape_lolalytics_gm(champion, position):
+@st.cache_data(ttl=3600)  # Cache por 1 hora
+def get_opgg_grandmaster_stats(champion, position):
     """
-    Extrae stats de LoLalytics para Grandmaster+
-    Devuelve: {kda, gpm, dpm, win_rate, dmg_share}
+    Obtiene stats de Grandmaster+ desde OP.GG
+    champion: nombre en inglés (ashe, zed, ksante)
+    position: top, jungle, mid, adc, support
     """
-    url = f"https://lolalytics.com/lol/{champion.lower()}/?tier=grandmaster&lane={position.lower()}"
-    headers = {"User-Agent": "Mozilla/5.0"}
+    url = f"https://op.gg/api/v1.0/internal/bypass/champions/{champion}/statistics?position={position.lower()}&tier=grandmaster&region=world"
     
     try:
-        response = requests.get(url, headers=headers, timeout=15)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        response = requests.get(
+            url,
+            headers={
+                "User-Agent": "Mozilla/5.0",
+                "Accept-Language": "en-US,en;q=0.9"
+            },
+            timeout=10
+        )
+        data = response.json()
         
-        # Extraer stats del JSON incrustado
-        script = soup.find("script", string=re.compile("winRate"))
-        if script:
-            data = str(script)
-            return {
-                'kda': re.search(r'"kda":\[([\d\.]+),([\d\.]+),([\d\.]+)\]', data).groups(),
-                'gpm': float(re.search(r'"goldPerMin":(\d+\.\d+)', data).group(1)),
-                'dpm': float(re.search(r'"damagePerMin":(\d+\.\d+)', data).group(1)),
-                'win_rate': float(re.search(r'"winRate":(\d+\.\d+)', data).group(1)),
-                'dmg_share': float(re.search(r'"damagePercent":(\d+\.\d+)', data).group(1)),
-                'source': 'LoLalytics (Grandmaster+)'
-            }
-        raise Exception("No se encontraron datos en el JSON")
+        return {
+            'kda': [
+                data['stats']['general']['kill'],
+                data['stats']['general']['death'],
+                data['stats']['general']['assist']
+            ],
+            'gpm': data['stats']['general']['gold_per_min'],
+            'dpm': data['stats']['general']['damage_per_min'],
+            'win_rate': data['stats']['general']['win_rate'],
+            'pick_rate': data['stats']['general']['pick_rate'],
+            'games_analyzed': data['stats']['general']['total'],
+            'source': 'OP.GG (Grandmaster+)'
+        }
     except Exception as e:
-        return {"error": f"Error: {str(e)} | URL: {url}"}
+        return {"error": f"Error API OP.GG: {str(e)} | URL: {url}"}
 
-# 2. Tu función de análisis (modificada)
-def analyze_champion(df, champion, position):
-    """Usa TU función calculate_average_by_champion y compara con GM+"""
-    # Calcular tus stats
-    avg_df = calculate_average_by_champion(df, position)
-    player_stats = avg_df[avg_df['championName'] == champion].iloc[0].to_dict()
+# 2. Tu función para calcular promedios
+def calculate_player_stats(df, champion, position):
+    """Usa TU función para calcular stats del jugador"""
+    avg_df = calculate_average_by_champion(
+        df[(df['championName'] == champion) & (df['Position'] == position)]
+    )
     
-    # Obtener stats GM
-    gm_stats = scrape_lolalytics_gm(champion, position)
+    if avg_df.empty:
+        return None
     
-    if "error" in gm_stats:
-        raise ValueError(f"Error en datos GM+: {gm_stats['error']}")
-    
-    # Preparar comparación
-    comparison = pd.DataFrame({
-        'Metric': ['KDA', 'GPM', 'DPM', 'Dmg Share', 'Win Rate', 'Games'],
-        'You': [
-            f"{player_stats['kda']:.2f}",
-            f"{player_stats['goldPerMinute']:.1f}",
-            f"{player_stats['damagePerMinute']:.1f}",
-            f"{player_stats['teamDamagePercentage']:.1f}%",
-            f"{player_stats['winrate']:.1f}%",
-            int(player_stats['side'])
-        ],
-        'Grandmaster+': [
-            f"{gm_stats['kda'][0]}/{gm_stats['kda'][1]}/{gm_stats['kda'][2]}",
-            f"{gm_stats['gpm']:.1f}",
-            f"{gm_stats['dpm']:.1f}",
-            f"{gm_stats['dmg_share']:.1f}%",
-            f"{gm_stats['win_rate']:.1f}%",
-            "N/A"
-        ]
-    })
-    
-    # Generar análisis IA
-    prompt = f"""Compara estos datos de {champion} en {position}:
-    - KDA: {player_stats['kda']:.2f} (Tú) vs {gm_stats['kda'][0]}/{gm_stats['kda'][1]}/{gm_stats['kda'][2]} (GM+)
-    - GPM: {player_stats['goldPerMinute']:.1f} vs {gm_stats['gpm']:.1f}
-    - DPM: {player_stats['damagePerMinute']:.1f} vs {gm_stats['dpm']:.1f}
-    - Win Rate: {player_stats['winrate']:.1f}% vs {gm_stats['win_rate']:.1f}%
-    - Partidas analizadas: {player_stats['side']}
-    
-    Genera un análisis en español con:
-    1. Diagnóstico general (1 oración)
-    2. 2 aspectos destacados positivos
-    3. 3 áreas clave de mejora
-    4. 1 consejo estratégico específico
-    """
-    analysis = model.generate_content(prompt).text
-    
-    return comparison, player_stats, analysis
+    return avg_df.iloc[0].to_dict()
 
 # 3. Interfaz Streamlit
-st.title("🏆 Analizador de Rendimiento vs Grandmaster+")
+st.title("🏆 Mi Rendimiento vs Grandmaster+ (OP.GG)")
 
-df= combined_df
+df = combined_df
 st.session_state.df = df
 
-# Selectores
+# Filtros
 if 'df' in st.session_state:
     df = st.session_state.df
     
-    # Selector de posición
-    position = st.selectbox(
-        "Selecciona tu posición",
-        options=sorted(df['Position'].unique()),
-        index=0,
-        format_func=lambda x: x.capitalize()
-    )
-    
-    # Selector de campeón (filtrado por posición)
-    champ_list = df[df['Position'] == position]['championName'].unique()
-    champion = st.selectbox(
-        "Selecciona tu campeón",
-        options=sorted(champ_list),
-        index=0
-    )
-    
+    col1, col2 = st.columns(2)
+    with col1:
+        position = st.selectbox(
+            "Posición",
+            options=sorted(df['Position'].unique()),
+            format_func=lambda x: x.capitalize()
+        )
+    with col2:
+        champion = st.selectbox(
+            "Campeón",
+            options=sorted(df[df['Position'] == position]['championName'].unique())
+        )
+
     # Botón de análisis
     if st.button("🔍 Comparar con Grandmaster+"):
         with st.spinner("Analizando..."):
             try:
-                # Ejecutar análisis
-                comparison_df, player_stats, analysis = analyze_champion(df, champion, position)
+                # Obtener stats del jugador
+                player_stats = calculate_player_stats(df, champion, position)
+                if not player_stats:
+                    st.error("No tienes datos con esta combinación")
+                    st.stop()
                 
-                # Mostrar resultados
-                st.subheader(f"📊 {champion} en {position}")
+                # Obtener stats GM+
+                gm_stats = get_opgg_grandmaster_stats(champion, position)
+                if "error" in gm_stats:
+                    st.error(gm_stats["error"])
+                    st.stop()
+                
+                # Tabla comparativa
+                st.subheader(f"📊 {champion} - {position}")
+                comparison = pd.DataFrame({
+                    'Métrica': ['KDA', 'GPM', 'DPM', 'Win Rate', 'Pick Rate', 'Partidas'],
+                    'Tú': [
+                        f"{player_stats['kda']:.2f}",
+                        f"{player_stats['goldPerMinute']:.1f}",
+                        f"{player_stats['damagePerMinute']:.1f}",
+                        f"{player_stats['winrate']:.1f}%",
+                        "N/A",
+                        int(player_stats['side'])
+                    ],
+                    'Grandmaster+': [
+                        f"{gm_stats['kda'][0]:.1f}/{gm_stats['kda'][1]:.1f}/{gm_stats['kda'][2]:.1f}",
+                        f"{gm_stats['gpm']:.1f}",
+                        f"{gm_stats['dpm']:.1f}",
+                        f"{gm_stats['win_rate']:.1f}%",
+                        f"{gm_stats['pick_rate']:.1f}%",
+                        gm_stats['games_analyzed']
+                    ]
+                })
+                
                 st.dataframe(
-                    comparison_df.style.highlight_max(axis=1, color='#90EE90'),
+                    comparison.style.highlight_max(axis=1, color='#90EE90'),
                     hide_index=True,
                     width=800
                 )
+                
+                # Análisis de IA
+                st.subheader("🧠 Análisis Comparativo")
+                prompt = f"""Compara estos stats de {champion} en {position}:
+                - KDA: {player_stats['kda']:.2f} (Tú) vs {gm_stats['kda'][0]:.1f}/{gm_stats['kda'][1]:.1f}/{gm_stats['kda'][2]:.1f} (GM+)
+                - GPM: {player_stats['goldPerMinute']:.1f} vs {gm_stats['gpm']:.1f}
+                - DPM: {player_stats['damagePerMinute']:.1f} vs {gm_stats['dpm']:.1f}
+                - Win Rate: {player_stats['winrate']:.1f}% vs {gm_stats['win_rate']:.1f}%
+                - Partidas analizadas: {player_stats['side']} (Tú) vs {gm_stats['games_analyzed']} (GM+)
+                
+                Genera un análisis en español con:
+                1. Diagnóstico general (1 oración)
+                2. 2 aspectos destacados positivos
+                3. 3 áreas clave de mejora
+                4. 1 consejo estratégico específico para {position}
+                """
+                response = model.generate_content(prompt)
+                st.write(response.text)
                 
                 # Mostrar imagen del campeón si existe
                 if 'championImage' in player_stats and pd.notna(player_stats['championImage']):
                     st.image(player_stats['championImage'], width=150)
                 
-                # Análisis de IA
-                st.subheader("🧠 Análisis Comparativo")
-                st.write(analysis)
-                
-            except ValueError as e:
-                st.error(str(e))
             except Exception as e:
                 st.error(f"Error inesperado: {str(e)}")
