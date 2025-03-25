@@ -496,62 +496,50 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 
 
 api_key = st.secrets["api_key"]
-genai.configure(api_key=api_key)
+# Configuration
+genai.configure(api_key=st.secrets["api_key"])
 
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # 1. Select relevant columns
-        key_columns = [
-            'championName', 'win', 'kda', 'deaths', 'goldPerMinute',
-            'damagePerMinute', 'teamDamagePercentage', 'Position',
-            'EnemyChampion', 'Date'
-        ]
+        # 1. Prepare smart data summaries
+        numeric_stats = df.select_dtypes(include=['number']).describe().to_string()
+        champ_freq = df['championName'].value_counts().head(10).to_string()
+        position_stats = df.groupby('Position').agg({
+            'kda': 'mean',
+            'win': 'mean',
+            'damagePerMinute': 'max'
+        }).to_string()
 
-        # 2. Detect if query mentions specific champion
-        champion_query = next(
-            (word for word in user_input.lower().split()
-             if word in df['championName'].str.lower().values),
-            None
-        )
+        # 2. Create optimized prompt with clear data structure
+        prompt = f"""You're a professional League of Legends data analyst. Answer concisely in English.
 
-        # 3. Filter data if champion specified
-        if champion_query:
-            analysis_df = df[df['championName'].str.lower() == champion_query]
-            if len(analysis_df) > 15:  # Limit to 15 most recent matches
-                analysis_df = analysis_df.sort_values('Date', ascending=False).head(15)
-        else:
-            analysis_df = df.sample(min(20, len(df)))  # General analysis sample
+        USER QUESTION: {user_input}
 
-        # 4. Create performance summary
-        stats = []
-        for col in ['kda', 'goldPerMinute', 'damagePerMinute', 'teamDamagePercentage']:
-            if col in analysis_df.columns:
-                stats.append(
-                    f"{col}: {analysis_df[col].mean():.2f} avg "
-                    f"(max {analysis_df[col].max():.2f}, min {analysis_df[col].min():.2f})"
-                )
+        DATA CONTEXT (from {len(df)} matches):
 
-        win_rate = f"{analysis_df['win'].mean()*100:.1f}%" if 'win' in analysis_df.columns else "N/A"
+        [NUMERIC STATS]
+        {numeric_stats}
 
-        # 5. Generate optimized prompt
-        prompt = f"""Perform professional League of Legends data analysis in English.
+        [TOP 10 CHAMPIONS]
+        {champ_freq}
 
-        User Question: {user_input}
+        [POSITION PERFORMANCE]
+        {position_stats}
 
-        Context:
-        - Data from {len(analysis_df)} matches
-        - Key stats: {', '.join(stats)}
-        - Win Rate: {win_rate}
-        - Positions: {analysis_df['Position'].value_counts().to_dict()}
+        RESPONSE RULES:
+        1. Always answer using available data
+        2. For "highest" questions, reference the max() values
+        3. Include specific numbers from the stats
+        4. Keep responses under 4 sentences
+        5. For comparisons, use both averages and extremes
+        6. Never say "insufficient data"
 
-        Required:
-        1. Compare performance metrics when champion is specified
-        2. Highlight gold efficiency and damage contribution
-        3. Mention any counterpick patterns if enemy data exists
-        4. Keep response under 6 sentences
-        5. Use professional esports terminology
+        EXAMPLE:
+        Q: "Highest damage champion?"
+        A: "Brand holds max damage: 2,870 DPM (avg 1,950). Mages dominate top 5 spots."
         """
 
+        # 3. Call Gemini
         model = genai.GenerativeModel('gemini-1.5-flash')
         response = model.generate_content(prompt)
         return response.text
@@ -561,32 +549,24 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
 
 # Streamlit Interface
 with tab8:
-    st.title("🏆 LoL Champion Performance Analyzer")
+    st.title("🏆 LoL Data Analyst")
 
     # Data preview
-    st.dataframe(combined_df[['championName', 'Position', 'kda', 'win', 'goldPerMinute']].head())
+    st.write("Sample data:", combined_df[['championName', 'Position', 'kda', 'damagePerMinute']].head(3))
 
-    # Query examples
-    st.markdown("""
-    **Try these queries:**
-    - How does Rell perform as Support?
-    - Show KDA vs gold efficiency for ADCs
-    - Who counters Zed in mid lane?
-    - Champion with highest damage per minute
-    """)
+    user_input = st.text_area("Ask about champion performance:",
+                            placeholder="e.g. 'Which champion has highest damage per minute?'",
+                            height=100)
 
-    user_input = st.text_area("Enter your champion analysis question:", height=120)
-
-    if st.button("🔍 Analyze Performance", type="primary"):
+    if st.button("Analyze", type="primary"):
         if user_input:
-            with st.spinner("Analyzing match data..."):
-                result = get_gemini_response(user_input, combined_df)
+            with st.spinner("Processing..."):
+                response = get_gemini_response(user_input, combined_df)
 
-            st.subheader("📈 Performance Report")
-            st.markdown(result)
+            st.subheader("Results")
+            st.markdown(response)
 
-            # Optional raw data
-            with st.expander("📊 See raw stats used"):
-                st.write(analysis_df.describe() if 'analysis_df' in locals() else combined_df.describe())
+            with st.expander("Data Stats Used"):
+                st.write("Numeric stats:", df.select_dtypes(include=['number']).describe())
         else:
-            st.warning("Please enter a question about champion performance")
+            st.warning("Please enter a question")
