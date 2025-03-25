@@ -501,33 +501,6 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 api_key = st.secrets["api_key"]
 # Configuration
 genai.configure(api_key=st.secrets["api_key"])
-encoder = SentenceTransformer('all-MiniLM-L6-v2')
-
-# Active-Prompt Example Bank (English/Spanish)
-active_prompt_examples = [
-    {
-        "question": "What's our win rate against Jayce in Mid?",
-        "cot": "1. Filter where Position='Mid' and EnemyChampion='Jayce'. 2. Calculate win rate (mean of win column).",
-        "answer": "Win rate vs Jayce in Mid: 50% (1 win, 1 loss)."
-    },
-    {
-        "question": "¿Cuál es el campeón con mayor KDA en ADC?",
-        "cot": "1. Filtrar donde Position='Adc'. 2. Calcular KDA promedio por campeón. 3. Ordenar descendente.",
-        "answer": "Kai'Sa tiene el mayor KDA (16.0) en ADC."
-    },
-    {
-        "question": "Show matches where we played against Poppy",
-        "cot": "1. Filter where EnemyChampion='Poppy'. 2. Return gameName and championName.",
-        "answer": "Matches vs Poppy: scrim | bkr g5 (played Rell)."
-    }
-]
-
-def get_active_examples(user_question, k=2):
-    question_embed = encoder.encode(user_question)
-    example_embeds = [encoder.encode(ex["question"]) for ex in active_prompt_examples]
-    sim_scores = cosine_similarity([question_embed], example_embeds)[0]
-    top_indices = np.argsort(sim_scores)[-k:][::-1]
-    return [active_prompt_examples[i] for i in top_indices]
 
 class AdvancedLoLAnalyzer:
     def __init__(self, df):
