@@ -555,77 +555,37 @@ def analyze_champion(champion: str, df: pd.DataFrame) -> str:
     return response.text
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # 1. Detect enemy matchup questions (e.g., "against Poppy")
-        enemy_matchup_phrases = ["against", "vs", "versus", "when facing"]
-        for phrase in enemy_matchup_phrases:
-            if phrase in user_input.lower():
-                parts = user_input.lower().split(phrase)
-                if len(parts) > 1:
-                    enemy_champ = parts[1].strip(" ?'\"").title()
-                    matchup_data = df[df['EnemyChampion'].str.strip().str.title() == enemy_champ]
-
-                    if not matchup_data.empty:
-                        our_champs = matchup_data['championName'].unique()
-                        win_rate = matchup_data['win'].mean() * 100
-
-                        # Generate CoT for matchups
-                        cot_steps = [
-                            "1. Identify enemy champion mentioned in the question.",
-                            f"2. Filter matches where EnemyChampion = '{enemy_champ}'.",
-                            "3. Calculate key metrics:",
-                            f"   - Champions played: {', '.join(our_champs)}",
-                            f"   - Win rate: {win_rate:.1f}%",
-                            f"   - Average KDA: {matchup_data['kda'].mean():.2f}"
-                        ]
-
-                        response = (
-                            "🔍 **Chain-of-Thought:**\n" + "\n".join(cot_steps) +
-                            "\n\n📊 **Result:**\n" +
-                            f"In {len(matchup_data)} matches against {enemy_champ}:\n" +
-                            f"- Champions used: {', '.join(our_champs)}\n" +
-                            f"- Win rate: {win_rate:.1f}%\n" +
-                            f"- Last match: {matchup_data.iloc[-1]['gameName']}"
-                        )
-                        return response
-                    else:
-                        return f"No matches found against {enemy_champ}"
-
-        # 2. Specific champion analysis (e.g., "How is Yone performing?")
-        champion = next(
-            (name for name in df['championName'].str.strip().str.title().unique()
-             if name.lower() in user_input.lower()),
-            None
-        )
-        if champion:
-            return analyze_champion(champion, df)  # This function now includes CoT
-
-        # 3. Active-Prompt + CoT for general questions
-        active_examples = get_active_examples(user_input)
+        # Convert DataFrame to analyzable string format
+        data_str = df[['championName', 'goldPerMinute', 'damagePerMinute', 'kda', 'win']].head(10).to_string()
 
         prompt = f"""
-        You're a League of Legends analyst. Follow these steps:
+        You're a League of Legends data analyst. Answer the question concisely using ONLY this match data:
 
-        **Active Examples (CoT):**
-        {"".join([f"Q: {ex['question']}\nCoT: {ex['cot']}\nA: {ex['answer']}\n\n" for ex in active_examples])}
+        {data_str}
 
-        **Available Data:**
+        Global Stats:
         - Matches: {len(df)}
-        - Columns: {list(df.columns)}
-        - Global win rate: {df['win'].mean()*100:.1f}%
+        - Champions: {df['championName'].nunique()}
 
-        **Question:** "{user_input}"
+        Rules:
+        1. Respond with JUST the factual answer
+        2. Use exact values from the data
+        3. No explanations or reasoning
+        4. Max 2 sentences
 
-        **Response Format:**
-        1. 🔍 Chain-of-Thought (step-by-step reasoning):
-        2. 📊 Data-Driven Result:
-        """
+        Question: "{user_input}"
+        Answer: """
 
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash',
+                                   generation_config={"temperature": 0.1})  # More deterministic
         response = model.generate_content(prompt)
-        return response.text
+
+        # Extract just the answer (remove any residual reasoning)
+        clean_answer = response.text.split('\n')[0].strip()
+        return clean_answer if clean_answer else "No answer generated"
 
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f"Data analysis error"
 
 
 def analyze_champion(champion: str, df: pd.DataFrame) -> str:
