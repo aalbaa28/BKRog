@@ -508,7 +508,7 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
         prompt += f"Datos: {df_json}"
 
         # Llamar a la API de Gemini con el prompt
-        model = genai.GenerativeModel('models/chat-bison-001')
+        model = genai.GenerativeModel('gemini-1.5-flash')  # Gratis con límites
         response = model.generate_content(prompt)  # Aquí 'model' es tu modelo de Gemini
 
         return response.text  # Retornar la respuesta generada por Gemini
@@ -517,7 +517,7 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
 
 with tab8:
     # Listar los modelos disponibles
-   #models = genai.list_models()
+    #models = genai.list_models()
     #st.write("Modelos disponibles:", models)
     st.title("Consulta a Gemini AI")
     user_input = st.text_area("Escribe tu consulta:")
