@@ -528,94 +528,169 @@ def get_active_examples(user_question, k=2):
     sim_scores = cosine_similarity([question_embed], example_embeds)[0]
     top_indices = np.argsort(sim_scores)[-k:][::-1]
     return [active_prompt_examples[i] for i in top_indices]
-def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
-    try:
-        # 1. Detección automática de tipo de pregunta
-        user_input = user_input.lower()
 
-        # Caso 1: Preguntas sobre matchups (ej: "enemies against Rell")
-        if any(keyword in user_input for keyword in ["against", "vs", "versus", "contra", "frente a"]):
-            parts = [p.strip() for p in re.split("against|vs|versus|contra|frente a", user_input)]
-            if len(parts) > 1:
-                our_champ = None
-                enemy_champ = None
 
-                # Buscar nombres de campeones en la pregunta
-                for champ in df['championName'].unique():
-                    champ_lower = champ.lower()
-                    if champ_lower in parts[0]:
-                        our_champ = champ
-                    if champ_lower in parts[1]:
-                        enemy_champ = champ
+class AdvancedLoLAnalyzer:
+    def __init__(self, df):
+        self.df = self._preprocess_data(df)
 
-                # Solo nuestro campeón especificado
-                if our_champ and not enemy_champ:
-                    matchups = df[df['championName'].str.lower() == our_champ.lower()]
-                    if not matchups.empty:
-                        enemies = matchups['EnemyChampion'].unique()
-                        win_rate = matchups['win'].mean() * 100
-                        return (
-                            f"Matchups for {our_champ} ({len(matchups)} games):\n"
-                            f"- Enemies faced: {', '.join(enemies)}\n"
-                            f"- Win rate: {win_rate:.1f}%"
-                        )
+    def _preprocess_data(self, df):
+        """Advanced data preprocessing"""
+        # Conversions and initial calculations
+        df['Date'] = pd.to_datetime(df['Date'])
+        df['KDA'] = (df['kills'] + df['assists']) / df['deaths'].replace(0, 1)  # Avoid division by zero
 
-                # Matchup específico (nuestro campeón vs enemigo)
-                elif our_champ and enemy_champ:
-                    specific_matches = df[
-                        (df['championName'].str.lower() == our_champ.lower()) &
-                        (df['EnemyChampion'].str.lower() == enemy_champ.lower())
-                    ]
-                    if not specific_matches.empty:
-                        wins = specific_matches['win'].sum()
-                        total = len(specific_matches)
-                        return (
-                            f"Matchup {our_champ} vs {enemy_champ}:\n"
-                            f"- Games played: {total}\n"
-                            f"- Win rate: {(wins/total)*100:.1f}%\n"
-                            f"- Avg KDA: {specific_matches['kda'].mean():.2f}"
-                        )
-                    else:
-                        return f"No matches found for {our_champ} vs {enemy_champ}"
+        # Champion metrics
+        champ_stats = df.groupby('championName').agg({
+            'win': ['count', 'mean'],
+            'KDA': 'mean',
+            'goldPerMinute': 'mean',
+            'damagePerMinute': 'mean',
+            'teamDamagePercentage': 'mean'
+        })
+        champ_stats.columns = ['_'.join(col).strip() for col in champ_stats.columns.values]
 
-        # Caso 2: Conteo de partidas (ej: "times played Rell")
-        elif any(keyword in user_input for keyword in ["times played", "veces jugado", "matches with"]):
-            champ = next((name for name in df['championName'].unique()
-                        if name.lower() in user_input), None)
-            if champ:
-                count = len(df[df['championName'].str.lower() == champ.lower()])
-                return f"Played {count} matches as {champ}"
+        # Matchup data
+        df['matchup'] = df['championName'] + " vs " + df['EnemyChampion']
+        self.matchup_stats = df.groupby('matchup').agg({
+            'win': ['count', 'mean'],
+            'KDA': 'mean'
+        })
 
-        # Caso 3: Preguntas generales (usa Gemini con contexto)
-        stats = {
-            'champs_played': df['championName'].value_counts().to_dict(),
-            'common_matchups': df['EnemyChampion'].value_counts().head(5).to_dict(),
-            'position_stats': df.groupby('Position').agg({
-                'win': 'mean',
-                'kda': 'mean'
-            }).to_dict()
-        }
+        return df
+
+    def answer_question(self, question):
+        """Smart analysis system"""
+        question = question.lower()
+
+        # KDA analysis
+        if 'kda' in question:
+            return self._analyze_kda(question)
+
+        # Matchup analysis
+        elif any(word in question for word in ['against', 'vs', 'versus', 'matchup']):
+            return self._analyze_matchups(question)
+
+        # Economy/damage analysis
+        elif any(word in question for word in ['gold', 'damage', 'dpm', 'gpm']):
+            return self._analyze_economy(question)
+
+        # General analysis
+        else:
+            return self._general_analysis(question)
+
+    def _analyze_kda(self, question):
+        """KDA-specific analysis"""
+        if 'best kda' in question:
+            best = self.df.groupby('championName')['KDA'].mean().idxmax()
+            value = self.df.groupby('championName')['KDA'].mean().max()
+            return f"Best KDA: {best} ({value:.2f})"
+
+        elif 'worst kda' in question:
+            worst = self.df.groupby('championName')['KDA'].mean().idxmin()
+            value = self.df.groupby('championName')['KDA'].mean().min()
+            return f"Worst KDA: {worst} ({value:.2f})"
+
+        elif 'average kda' in question:
+            if 'position' in question:
+                pos = next((p for p in self.df['Position'].unique()
+                          if p.lower() in question), None)
+                if pos:
+                    avg = self.df[self.df['Position'] == pos]['KDA'].mean()
+                    return f"Average KDA in {pos}: {avg:.2f}"
+            avg_kda = self.df['KDA'].mean()
+            return f"Team average KDA: {avg_kda:.2f}"
+        else:
+            return "Specify KDA query (e.g. 'best KDA', 'average KDA in Mid')"
+
+    def _analyze_matchups(self, question):
+        """Matchup-specific analysis"""
+        words = question.split()
+        champ = next((c for c in self.df['championName'].unique()
+                     if c.lower() in question), None)
+
+        if champ:
+            champ_data = self.df[self.df['championName'].str.lower() == champ.lower()]
+
+            # Worst matchup
+            if 'worst' in question:
+                worst = champ_data.groupby('EnemyChampion')['win'].mean().idxmin()
+                wr = champ_data.groupby('EnemyChampion')['win'].mean().min() * 100
+                games = len(champ_data[champ_data['EnemyChampion'] == worst])
+                return f"Worst {champ} matchup: vs {worst} ({wr:.1f}% WR in {games} games)"
+
+            # Best matchup
+            elif 'best' in question:
+                best = champ_data.groupby('EnemyChampion')['win'].mean().idxmax()
+                wr = champ_data.groupby('EnemyChampion')['win'].mean().max() * 100
+                games = len(champ_data[champ_data['EnemyChampion'] == best])
+                return f"Best {champ} matchup: vs {best} ({wr:.1f}% WR in {games} games)"
+
+            # All matchups
+            else:
+                matchups = champ_data['EnemyChampion'].value_counts()
+                return f"{champ} matchups:\n" + "\n".join(
+                    [f"- vs {m}: {c} games" for m, c in matchups.items()])
+
+        return "Specify a champion (e.g. 'Zed matchups')"
+
+    def _analyze_economy(self, question):
+        """Economy/damage analysis"""
+        if 'gold' in question or 'gpm' in question:
+            if 'position' in question:
+                pos = next((p for p in self.df['Position'].unique()
+                          if p.lower() in question), None)
+                if pos:
+                    avg = self.df[self.df['Position'] == pos]['goldPerMinute'].mean()
+                    return f"Average GPM in {pos}: {avg:.1f}"
+
+            best = self.df.groupby('championName')['goldPerMinute'].mean().idxmax()
+            value = self.df.groupby('championName')['goldPerMinute'].mean().max()
+            return f"Highest GPM: {best} ({value:.1f})"
+
+        elif 'damage' in question or 'dpm' in question:
+            if 'position' in question:
+                pos = next((p for p in self.df['Position'].unique()
+                          if p.lower() in question), None)
+                if pos:
+                    avg = self.df[self.df['Position'] == pos]['damagePerMinute'].mean()
+                    return f"Average DPM in {pos}: {avg:.1f}"
+
+            best = self.df.groupby('championName')['damagePerMinute'].mean().idxmax()
+            value = self.df.groupby('championName')['damagePerMinute'].mean().max()
+            return f"Highest DPM: {best} ({value:.1f})"
+
+        return "Specify economy/damage query (e.g. 'best gold in Mid', 'damage per minute')"
+
+    def _general_analysis(self, question):
+        """Fallback for complex questions"""
+        context = f"""
+        Key Stats:
+        - Champions played: {self.df['championName'].unique()}
+        - Global KDA: {self.df['KDA'].mean():.2f}
+        - Avg GPM: {self.df['goldPerMinute'].mean():.1f}
+        - Avg DPM: {self.df['damagePerMinute'].mean():.1f}
+        """
 
         prompt = f"""
-        Analyze this LoL match data:
-        {stats}
+        You're a LoL analyst. Answer concisely using this data:
+        {context}
 
-        Question: "{user_input}"
+        Question: "{question}"
 
         Rules:
-        1. Use only the provided statistics
-        2. Be extremely concise
-        3. Never invent numbers
+        1. Max 2 sentences
+        2. Only verifiable data
+        3. No opinions
 
         Answer:
         """
 
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(prompt)
-        return response.text
+        # Connect to Gemini/OpenAI here if needed
+        # response = model.generate_content(prompt)
+        # return response.text
 
-    except Exception as e:
-        return f"Error processing request: {str(e)}"
+        return "[Advanced mode: Connect to AI for this response]"
 
 
 # Streamlit Interface
@@ -634,17 +709,13 @@ with tab8:
     if st.button("Get Deep Analysis", type="primary"):
         if user_input:
             with st.spinner("🧠 Conducting full analysis..."):
-                response = get_gemini_response(user_input, combined_df)
+                analyzer = AdvancedLoLAnalyzer(df)
 
-            st.markdown("## 🔍 Analysis Results")
-            st.markdown(response)
+                answer = analyzer.answer_question(question)
+                st.success(answer)
 
-            # Optional: Show raw context
-            if st.checkbox("Show data context used"):
-                st.json({
-                    "total_matches": len(combined_df),
-                    "champions": combined_df['championName'].nunique(),
-                    "columns_used": list(combined_df.columns)
-                })
+                # Show relevant data
+                with st.expander("📊 View related data"):
+                    st.dataframe(df.head())
         else:
             st.warning("Please enter a question")
