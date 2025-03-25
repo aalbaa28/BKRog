@@ -501,6 +501,10 @@ genai.configure(api_key=st.secrets["api_key"])
 
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
+        # Convertir todas las fechas (si las hay) a cadenas de texto
+        for col in df.select_dtypes(include=['datetime64[ns]']):
+            df[col] = df[col].dt.strftime('%Y-%m-%d %H:%M:%S')  # Formato de fecha que prefieras
+
         # 1. Prepare concise data summary for context
         numeric_stats = df.describe().to_dict()  # Summary of numeric columns
         categorical_values = {
@@ -547,6 +551,7 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
 
     except Exception as e:
         return f"An error occurred while processing the request: {str(e)}"
+
 
 
 # Streamlit Interface
