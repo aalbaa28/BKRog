@@ -501,51 +501,78 @@ genai.configure(api_key=st.secrets["api_key"])
 
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # 1. Prepare smart data summaries
-        numeric_stats = df.select_dtypes(include=['number']).describe().to_string()
-        champ_freq = df['championName'].value_counts().head(10).to_string()
-        position_stats = df.groupby('Position').agg({
-            'kda': 'mean',
-            'win': 'mean',
-            'damagePerMinute': 'max'
-        }).to_string()
+        # 1. Pre-process champion data
+        df['championName'] = df['championName'].str.title()  # Standardize names
 
-        # 2. Create optimized prompt with clear data structure
-        prompt = f"""You're a professional League of Legends data analyst. Answer concisely in English.
+        # 2. Detect if query is about a specific champion
+        champion_query = next(
+            (name for name in df['championName'].unique()
+             if name.lower() in user_input.lower()),
+            None
+        )
 
-        USER QUESTION: {user_input}
+        # 3. Generate champion-specific report if detected
+        if champion_query:
+            champ_data = df[df['championName'] == champion_query]
+            play_count = len(champ_data)
 
-        DATA CONTEXT (from {len(df)} matches):
+            # Calculate core metrics
+            stats = {
+                'Play Count': play_count,
+                'Win Rate': f"{champ_data['win'].mean()*100:.1f}%" if 'win' in champ_data else 'N/A',
+                'Avg KDA': f"{champ_data['kda'].mean():.2f}" if 'kda' in champ_data else 'N/A',
+                'Avg Damage/Min': f"{champ_data['damagePerMinute'].mean():.0f}" if 'damagePerMinute' in champ_data else 'N/A',
+                'Avg Gold/Min': f"{champ_data['goldPerMinute'].mean():.0f}" if 'goldPerMinute' in champ_data else 'N/A',
+                'Main Position': champ_data['Position'].mode()[0] if 'Position' in champ_data else 'N/A'
+            }
 
-        [NUMERIC STATS]
-        {numeric_stats}
+            # Build comprehensive report
+            report = f"📊 {champion_query} Performance Report:\n"
+            report += "\n".join(f"- {k}: {v}" for k,v in stats.items())
 
-        [TOP 10 CHAMPIONS]
-        {champ_freq}
+            # Add matchup analysis if enemy data exists
+            if 'EnemyChampion' in champ_data:
+                top_matchups = champ_data['EnemyChampion'].value_counts().head(3)
+                report += "\n\n⚔️ Frequent Matchups:\n" + "\n".join(
+                    f"- vs {champ}: {count} games"
+                    for champ, count in top_matchups.items()
+                )
 
-        [POSITION PERFORMANCE]
-        {position_stats}
+            return report
 
-        RESPONSE RULES:
-        1. Always answer using available data
-        2. For "highest" questions, reference the max() values
-        3. Include specific numbers from the stats
-        4. Keep responses under 4 sentences
-        5. For comparisons, use both averages and extremes
-        6. Never say "insufficient data"
+        # 4. General data analysis using Gemini
+        else:
+            # Prepare data summaries
+            numeric_summary = df.describe().to_string()
+            champ_frequency = df['championName'].value_counts().head(10).to_string()
 
-        EXAMPLE:
-        Q: "Highest damage champion?"
-        A: "Brand holds max damage: 2,870 DPM (avg 1,950). Mages dominate top 5 spots."
-        """
+            prompt = f"""You're a professional LoL analyst. Provide concise, data-driven insights.
 
-        # 3. Call Gemini
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(prompt)
-        return response.text
+            Question: {user_input}
+
+            Available Data:
+            - {len(df)} matches analyzed
+            - Numeric stats:\n{numeric_summary}
+            - Top champions:\n{champ_frequency}
+
+            Response Rules:
+            1. Reference specific stats from the data
+            2. For comparisons, use both averages and extremes
+            3. Keep responses under 6 sentences
+            4. Never say "data not available" - use what exists
+            5. For champion questions, suggest rephrasing with exact name
+
+            Example Good Response:
+            "Rell appears in 12 matches (8.3% frequency) with 58.3% win rate.
+            Her average damage (14,200) is lower than other supports like Nami (16,500)."
+            """
+
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(prompt)
+            return response.text
 
     except Exception as e:
-        return f"Analysis error: {str(e)}"
+        return f"⚠️ Analysis Error: {str(e)}"
 
 # Streamlit Interface
 with tab8:
