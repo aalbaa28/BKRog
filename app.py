@@ -521,7 +521,7 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
         """
 
         # 3. Call the Gemini model with the prompt
-        model = genai.GenerativeModel('gemini-1.5-pro')  # Use the appropriate model
+        model = genai.GenerativeModel('gemini-1.5-flash')  # Use the appropriate model
         response = model.generate_content(prompt)
 
         # 4. Return the generated response
