@@ -553,7 +553,7 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
         Question: "{user_input}"
         Answer: """
 
-        model = genai.GenerativeModel('gemini-1.5-flash',
+        model = genai.GenerativeModel('gemini-1.5-pro',
                                    generation_config={"temperature": 0.3})  # More deterministic
         response = model.generate_content(prompt)
 
