@@ -500,63 +500,69 @@ api_key = st.secrets["api_key"]
 genai.configure(api_key=st.secrets["api_key"])
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # 1. Prepare complete data context
-        full_columns = df.columns.tolist()
+        # 1. Standardize column names and clean data
+        df = df.rename(columns=lambda x: x.strip().lower())
+        df['championname'] = df['championname'].str.strip().str.title()
 
-        # Generate comprehensive data summary
-        data_summary = {
-            'numeric_stats': df.describe().to_dict(),
-            'categorical_values': {
-                col: df[col].unique().tolist()
-                for col in df.select_dtypes(include=['object']).columns
+        # 2. Create complete data context
+        context = {
+            "metadata": {
+                "total_matches": len(df),
+                "columns": {col: {"type": str(df[col].dtype), "sample": df[col].dropna().iloc[0]}
+                for col in df.columns
             },
-            'champion_counts': df['championName'].value_counts().to_dict()
+            "key_stats": {
+                "gold": df['goldperminute'].describe()[['mean', 'max']].to_dict(),
+                "damage": df['damageperminute'].describe()[['mean', 'max']].to_dict(),
+                "kda": df['kda'].describe()[['mean', 'max']].to_dict()
+            },
+            "common_patterns": {
+                "positions": df['position'].value_counts().to_dict(),
+                "top_duos": df.groupby(['position', 'championname']).size().nlargest(5).to_dict()
+            }
         }
 
-        # 2. Create fully autonomous prompt
-        prompt = f"""You're a LoL data analyst with COMPLETE dataset access. Analyze thoroughly.
+        # 3. Generate autonomous analysis prompt
+        prompt = f"""You're a professional LoL analyst. Use ALL available data to answer:
 
         USER QUESTION: "{user_input}"
 
-        FULL DATA CONTEXT:
-        - Total matches: {len(df)}
-        - All columns: {full_columns}
+        COMPLETE DATA CONTEXT:
+        - Matches analyzed: {context['metadata']['total_matches']}
+        - Available columns: {list(df.columns)}
 
-        NUMERIC STATS (examples):
-        {str(data_summary['numeric_stats'])[:1000]}... [truncated]
+        KEY STATISTICS:
+        - Gold/min: Avg {context['key_stats']['gold']['mean']:.0f} | Max {context['key_stats']['gold']['max']:.0f}
+        - Damage/min: Avg {context['key_stats']['damage']['mean']:.0f} | Max {context['key_stats']['damage']['max']:.0f}
+        - KDA: Avg {context['key_stats']['kda']['mean']:.2f} | Best {context['key_stats']['kda']['max']:.2f}
 
-        CATEGORICAL VALUES (examples):
-        {str(data_summary['categorical_values'])[:500]}... [truncated]
+        DATA PATTERNS:
+        - Positions: {context['common_patterns']['positions']}
+        - Common combos: {context['common_patterns']['top_duos']}
 
-        CHAMPION COUNTS (verified):
-        {data_summary['champion_counts']}
-
-        ANALYSIS RULES:
-        1. Use ALL available columns intelligently
-        2. For champion counts, use these verified numbers
-        3. For other metrics, calculate from raw data
-        4. Never say "I don't know" - infer from patterns
-        5. Structure response:
-           a) Direct answer
-           b) Supporting evidence
-           c) Data caveats if any
+        RESPONSE REQUIREMENTS:
+        1. Use ALL relevant columns (gold, damage, position, etc.)
+        2. Include exact numbers from stats
+        3. Analyze any champion/role combination
+        4. Structure clearly:
+           • 🎯 Direct answer
+           • 📊 Key metrics
+           • 💡 Strategic insight
+        5. Never say "data not available"
         """
 
-        # 3. Call Gemini with complete access
-        model = genai.GenerativeModel('gemini-1.5-pro')  # Using pro for larger context
+        # 4. Call model with full context
+        model = genai.GenerativeModel('gemini-1.5-pro',
+                                   generation_config={
+                                       "temperature": 0.3,
+                                       "max_output_tokens": 1000
+                                   })
         response = model.generate_content(prompt)
 
-        # 4. Add verification layer
-        response_text = response.text
-        for champ, count in data_summary['champion_counts'].items():
-            if champ.lower() in user_input.lower() and str(count) not in response_text:
-                response_text = f"Verified {champ} matches: {count}\n\n" + response_text
-
-        return response_text
+        return response.text
 
     except Exception as e:
         return f"Analysis error: {str(e)}"
-
 # Streamlit Interface
 with tab8:
     st.title("🤖 Autonomous LoL Analyst")
