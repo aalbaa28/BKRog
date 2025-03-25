@@ -536,82 +536,111 @@ def scrape_lolalytics_gm(champion, position):
         return {"error": f"Error: {str(e)} | URL: {url}"}
 
 
-def analyze_champion_performance(df, champion, position):
-    """Función unificada que usa tu método y compara con GM+"""
-    # 1. Calcular stats del jugador usando TU función
-    player_stats = calculate_average_by_champion(
-        df[df['championName'] == champion], 
-        position
-    ).iloc[0]  # Tomamos el primer registro (ya filtrado por campeón)
+@st.cache_data(ttl=3600)
+def scrape_lolalytics_gm(champion, position):
+    """Extrae stats de Grandmaster+ desde LoLalytics"""
+    # (Implementación anterior que te pasé)
+    return gm_stats  # {'kda': [k,d,a], 'gpm': float, 'dpm': float, ...}
+
+# 2. Tu función de análisis (modificada)
+def analyze_champion(df, champion, position):
+    """Usa TU función calculate_average_by_champion y compara con GM+"""
+    # Calcular tus stats
+    avg_df = calculate_average_by_champion(df, position)
+    player_stats = avg_df[avg_df['championName'] == champion].iloc[0].to_dict()
     
-    # 2. Obtener stats de Grandmaster+ desde LoLalytics
+    # Obtener stats GM
     gm_stats = scrape_lolalytics_gm(champion, position)
     
     if "error" in gm_stats:
         raise ValueError(f"Error en datos GM+: {gm_stats['error']}")
     
-    # 3. Preparar datos comparativos
-    comparison_data = {
-        'Metric': ['KDA', 'GPM', 'DPM', 'Dmg Share %', 'Win Rate %', 'Games Played'],
+    # Preparar comparación
+    comparison = pd.DataFrame({
+        'Metric': ['KDA', 'GPM', 'DPM', 'Dmg Share', 'Win Rate', 'Games'],
         'You': [
             f"{player_stats['kda']:.2f}",
             f"{player_stats['goldPerMinute']:.1f}",
             f"{player_stats['damagePerMinute']:.1f}",
-            f"{player_stats['teamDamagePercentage']:.1f}",
-            f"{player_stats['winrate']:.1f}",
+            f"{player_stats['teamDamagePercentage']:.1f}%",
+            f"{player_stats['winrate']:.1f}%",
             int(player_stats['side'])
         ],
         'Grandmaster+': [
             f"{gm_stats['kda'][0]}/{gm_stats['kda'][1]}/{gm_stats['kda'][2]}",
             f"{gm_stats['gpm']:.1f}",
             f"{gm_stats['dpm']:.1f}",
-            f"{gm_stats['dmg_share']:.1f}",
-            f"{gm_stats['win_rate']:.1f}",
-            "N/A"  # u.gg no muestra número de partidas
+            f"{gm_stats['dmg_share']:.1f}%",
+            f"{gm_stats['win_rate']:.1f}%",
+            "N/A"
         ]
-    }
+    })
     
-    # 4. Generar análisis con IA
-    prompt = f"""Comparativa de {champion} en {position}:
+    # Generar análisis IA
+    prompt = f"""Compara estos datos de {champion} en {position}:
     - KDA: {player_stats['kda']:.2f} (Tú) vs {gm_stats['kda'][0]}/{gm_stats['kda'][1]}/{gm_stats['kda'][2]} (GM+)
     - GPM: {player_stats['goldPerMinute']:.1f} vs {gm_stats['gpm']:.1f}
     - DPM: {player_stats['damagePerMinute']:.1f} vs {gm_stats['dpm']:.1f}
-    - % Daño: {player_stats['teamDamagePercentage']:.1f}% vs {gm_stats['dmg_share']:.1f}%
     - Win Rate: {player_stats['winrate']:.1f}% vs {gm_stats['win_rate']:.1f}%
-    - Partidas: {int(player_stats['side'])} (Tú)
+    - Partidas analizadas: {player_stats['side']}
     
-    Genera análisis en español con:
-    1. Diagnóstico (1 oración)
-    2. 2 fortalezas principales
-    3. 3 áreas de mejora clave
+    Genera un análisis en español con:
+    1. Diagnóstico general (1 oración)
+    2. 2 aspectos destacados positivos
+    3. 3 áreas clave de mejora
     4. 1 consejo estratégico específico
     """
     analysis = model.generate_content(prompt).text
     
-    return pd.DataFrame(comparison_data), analysis
+    return comparison, player_stats, analysis
 
+df = combined_df
+st.session_state.df = df
 
-if st.button("Analizar vs Grandmaster+"):
-    try:
-        # Obtener datos comparativos
-        comparison_df, analysis = analyze_champion_performance(df, champion, position)
-        
-        # Mostrar tabla comparativa
-        st.dataframe(
-            comparison_df.style.highlight_max(axis=1, color='#90EE90'),
-            hide_index=True,
-            width=1000
-        )
-        
-        # Mostrar análisis de IA
-        st.subheader("🔍 Análisis Comparativo")
-        st.write(analysis)
-        
-        # Mostrar imagen del campeón (desde tus datos)
-        if not pd.isna(player_stats['championImage']):
-            st.image(player_stats['championImage'], width=150)
-            
-    except ValueError as e:
-        st.error(str(e))
-    except Exception as e:
-        st.error(f"Error inesperado: {str(e)}")
+# Selectores
+if 'df' in st.session_state:
+    df = st.session_state.df
+    
+    # Selector de posición
+    position = st.selectbox(
+        "Selecciona tu posición",
+        options=sorted(df['Position'].unique()),
+        index=0,
+        format_func=lambda x: x.capitalize()
+    )
+    
+    # Selector de campeón (filtrado por posición)
+    champ_list = df[df['Position'] == position]['championName'].unique()
+    champion = st.selectbox(
+        "Selecciona tu campeón",
+        options=sorted(champ_list),
+        index=0
+    )
+    
+    # Botón de análisis
+    if st.button("🔍 Comparar con Grandmaster+"):
+        with st.spinner("Analizando..."):
+            try:
+                # Ejecutar análisis
+                comparison_df, player_stats, analysis = analyze_champion(df, champion, position)
+                
+                # Mostrar resultados
+                st.subheader(f"📊 {champion} en {position}")
+                st.dataframe(
+                    comparison_df.style.highlight_max(axis=1, color='#90EE90'),
+                    hide_index=True,
+                    width=800
+                )
+                
+                # Mostrar imagen del campeón si existe
+                if 'championImage' in player_stats and pd.notna(player_stats['championImage']):
+                    st.image(player_stats['championImage'], width=150)
+                
+                # Análisis de IA
+                st.subheader("🧠 Análisis Comparativo")
+                st.write(analysis)
+                
+            except ValueError as e:
+                st.error(str(e))
+            except Exception as e:
+                st.error(f"Error inesperado: {str(e)}")
