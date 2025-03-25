@@ -521,7 +521,7 @@ with tab8:
 
     if st.button("Enviar", key="chat_gemini"):
         if user_input:
-            respuesta = get_gemini_response(user_input, df)  # Pasar el dataframe completo
+            respuesta = get_gemini_response(user_input, combined_df)  # Pasar el dataframe completo
             st.write("### Respuesta de Gemini:")
             st.write(respuesta)
         else:
