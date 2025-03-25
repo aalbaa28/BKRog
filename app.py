@@ -498,88 +498,101 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 api_key = st.secrets["api_key"]
 # Configuration
 genai.configure(api_key=st.secrets["api_key"])
-def get_champion_analysis(champion_name: str, df: pd.DataFrame) -> str:
-    try:
-        # 1. Standardize and filter data
-        df = df.rename(columns=lambda x: x.strip().lower())
-        champion_name = champion_name.strip().title()
-        champ_data = df[df['championname'] == champion_name]
+def analyze_champion(champion: str, df: pd.DataFrame) -> str:
+    # Clean and filter data
+    champion = champion.strip().title()
+    champ_data = df[df['championName'].str.strip().str.title() == champion]
 
-        if champ_data.empty:
-            return f"No data found for {champion_name} in the records."
+    if champ_data.empty:
+        return f"No data found for {champion}"
 
-        # 2. Calculate core metrics
-        analysis = {
-            'basic_stats': {
-                'play_count': len(champ_data),
-                'win_rate': champ_data['win'].mean() * 100,
-                'avg_kda': champ_data['kda'].mean(),
-                'avg_gold': champ_data['goldperminute'].mean(),
-                'avg_damage': champ_data['damageperminute'].mean()
-            },
-            'position_stats': champ_data['position'].value_counts().to_dict(),
-            'matchups': {
-                'best': champ_data.groupby('enemychampion')['win'].mean().idxmax(),
-                'worst': champ_data.groupby('enemychampion')['win'].mean().idxmin()
-            } if 'enemychampion' in df.columns else None,
-            'performance_trends': {
-                'gold_victory': champ_data.groupby('win')['goldperminute'].mean().to_dict(),
-                'damage_victory': champ_data.groupby('win')['damageperminute'].mean().to_dict()
-            }
-        }
+    # Calculate core metrics
+    avg_stats = {
+        'kda': champ_data['kda'].mean(),
+        'gold': champ_data['goldPerMinute'].mean(),
+        'damage': champ_data['damagePerMinute'].mean(),
+        'damage_share': champ_data['teamDamagePercentage'].mean()
+    }
 
-        # 3. Generate comprehensive report
-        report = [
-            f"📊 {champion_name} Performance Analysis ({analysis['basic_stats']['play_count']} matches):",
-            f"• Win Rate: {analysis['basic_stats']['win_rate']:.1f}%",
-            f"• Avg KDA: {analysis['basic_stats']['avg_kda']:.2f}",
-            f"• Gold/Min: {analysis['basic_stats']['avg_gold']:.0f}",
-            f"• Damage/Min: {analysis['basic_stats']['avg_damage']:.0f}",
-            "\n📍 Positions:",
-            *[f"• {pos}: {count} games" for pos, count in analysis['position_stats'].items()]
-        ]
+    # Win rate by position
+    position_stats = champ_data.groupby('Position').agg({
+        'win': 'mean',
+        'kda': 'mean',
+        'goldPerMinute': 'mean'
+    }).sort_values('win', ascending=False)
 
-        if analysis['matchups']:
-            report.extend([
-                "\n⚔️ Key Matchups:",
-                f"• Strongest vs: {analysis['matchups']['best']}",
-                f"• Weakest vs: {analysis['matchups']['worst']}"
-            ])
+    # Matchup analysis
+    if 'EnemyChampion' in champ_data.columns:
+        matchups = champ_data.groupby('EnemyChampion').agg({
+            'win': ['mean', 'count']
+        }).sort_values(('win', 'mean'), ascending=False)
+        best_matchup = matchups.index[0]
+        worst_matchup = matchups.index[-1]
 
+    # Build report
+    report = [
+        f"📊 {champion} Performance ({len(champ_data)} matches):",
+        f"• Win Rate: {champ_data['win'].mean()*100:.1f}%",
+        f"• Avg KDA: {avg_stats['kda']:.2f}",
+        f"• Gold/Min: {avg_stats['gold']:.0f}",
+        f"• Damage/Min: {avg_stats['damage']:.0f}",
+        f"• Damage Share: {avg_stats['damage_share']:.1f}%",
+        "\n📍 Positions:"
+    ]
+
+    # Add position stats
+    for pos in position_stats.index:
+        report.append(
+            f"• {pos}: {position_stats.loc[pos, 'win']*100:.1f}% WR, "
+            f"{position_stats.loc[pos, 'kda']:.2f} KDA, "
+            f"{position_stats.loc[pos, 'goldPerMinute']:.0f} GPM"
+        )
+
+    # Add matchups if available
+    if 'EnemyChampion' in champ_data.columns:
         report.extend([
-            "\n📈 Performance Trends:",
-            f"• Gold when winning: {analysis['performance_trends']['gold_victory'].get(True, 0):.0f} vs losing: {analysis['performance_trends']['gold_victory'].get(False, 0):.0f}",
-            f"• Damage when winning: {analysis['performance_trends']['damage_victory'].get(True, 0):.0f} vs losing: {analysis['performance_trends']['damage_victory'].get(False, 0):.0f}"
+            "\n⚔️ Best Matchup:",
+            f"• vs {best_matchup}: {matchups.loc[best_matchup, ('win', 'mean')]*100:.1f}% WR "
+            f"({matchups.loc[best_matchup, ('win', 'count')]} games)",
+            "\n⚠️ Worst Matchup:",
+            f"• vs {worst_matchup}: {matchups.loc[worst_matchup, ('win', 'mean')]*100:.1f}% WR "
+            f"({matchups.loc[worst_matchup, ('win', 'count')]} games)"
         ])
 
-        return "\n".join(report)
-
-    except Exception as e:
-        return f"Analysis error: {str(e)}"
-
+    return "\n".join(report)
 
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # Detect champion queries
-        champion = next((name for name in df['championname'].unique()
-                        if name.lower() in user_input.lower()), None)
+        # Check for champion-specific questions
+        champion = next(
+            (name for name in df['championName'].str.strip().str.title().unique()
+             if name.lower() in user_input.lower()),
+            None
+        )
 
         if champion:
-            return get_champion_analysis(champion, df)
+            return analyze_champion(champion, df)
 
-        # General question fallback
-        prompt = f"""Analyze this LoL data concisely:
+        # General question analysis
+        prompt = f"""You're a LoL analyst. Answer concisely using this data:
 
         Question: "{user_input}"
 
-        Data Columns: {list(df.columns)}
-        Sample Size: {len(df)} matches
+        Available Columns:
+        {list(df.columns)}
+
+        Key Statistics:
+        • {len(df)} total matches
+        • {df['championName'].nunique()} unique champions
+        • Avg Gold/Min: {df['goldPerMinute'].mean():.0f}
+        • Avg Damage/Min: {df['damagePerMinute'].mean():.0f}
 
         Rules:
-        1. Use exact column names from above
-        2. For champion questions, use championname column
-        3. For matchups, use enemychampion vs win rate
-        4. Keep response under 5 bullet points
+        1. Use exact column names
+        2. For champion questions: championName + Position
+        3. For matchups: championName vs EnemyChampion
+        4. For performance: goldPerMinute + damagePerMinute
+        5. Keep response under 100 words
         """
 
         model = genai.GenerativeModel('gemini-1.5-flash')
