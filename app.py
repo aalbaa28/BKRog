@@ -535,121 +535,83 @@ def scrape_lolalytics_gm(champion, position):
     except Exception as e:
         return {"error": f"Error: {str(e)} | URL: {url}"}
 
-# 2. Interfaz Streamlit
-st.title("🎮 Analizador: Tus Stats vs Grandmaster+")
 
-df = combined_df
-st.session_state.df = df
+def analyze_champion_performance(df, champion, position):
+    """Función unificada que usa tu método y compara con GM+"""
+    # 1. Calcular stats del jugador usando TU función
+    player_stats = calculate_average_by_champion(
+        df[df['championName'] == champion], 
+        position
+    ).iloc[0]  # Tomamos el primer registro (ya filtrado por campeón)
+    
+    # 2. Obtener stats de Grandmaster+ desde LoLalytics
+    gm_stats = scrape_lolalytics_gm(champion, position)
+    
+    if "error" in gm_stats:
+        raise ValueError(f"Error en datos GM+: {gm_stats['error']}")
+    
+    # 3. Preparar datos comparativos
+    comparison_data = {
+        'Metric': ['KDA', 'GPM', 'DPM', 'Dmg Share %', 'Win Rate %', 'Games Played'],
+        'You': [
+            f"{player_stats['kda']:.2f}",
+            f"{player_stats['goldPerMinute']:.1f}",
+            f"{player_stats['damagePerMinute']:.1f}",
+            f"{player_stats['teamDamagePercentage']:.1f}",
+            f"{player_stats['winrate']:.1f}",
+            int(player_stats['side'])
+        ],
+        'Grandmaster+': [
+            f"{gm_stats['kda'][0]}/{gm_stats['kda'][1]}/{gm_stats['kda'][2]}",
+            f"{gm_stats['gpm']:.1f}",
+            f"{gm_stats['dpm']:.1f}",
+            f"{gm_stats['dmg_share']:.1f}",
+            f"{gm_stats['win_rate']:.1f}",
+            "N/A"  # u.gg no muestra número de partidas
+        ]
+    }
+    
+    # 4. Generar análisis con IA
+    prompt = f"""Comparativa de {champion} en {position}:
+    - KDA: {player_stats['kda']:.2f} (Tú) vs {gm_stats['kda'][0]}/{gm_stats['kda'][1]}/{gm_stats['kda'][2]} (GM+)
+    - GPM: {player_stats['goldPerMinute']:.1f} vs {gm_stats['gpm']:.1f}
+    - DPM: {player_stats['damagePerMinute']:.1f} vs {gm_stats['dpm']:.1f}
+    - % Daño: {player_stats['teamDamagePercentage']:.1f}% vs {gm_stats['dmg_share']:.1f}%
+    - Win Rate: {player_stats['winrate']:.1f}% vs {gm_stats['win_rate']:.1f}%
+    - Partidas: {int(player_stats['side'])} (Tú)
+    
+    Genera análisis en español con:
+    1. Diagnóstico (1 oración)
+    2. 2 fortalezas principales
+    3. 3 áreas de mejora clave
+    4. 1 consejo estratégico específico
+    """
+    analysis = model.generate_content(prompt).text
+    
+    return pd.DataFrame(comparison_data), analysis
 
-# Selectores
-if 'df' in st.session_state:
-    df = st.session_state.df
-    
-    # Selector de posición
-    position = st.selectbox(
-        "Línea",
-        options=df['Position'].unique(),
-        format_func=lambda x: x.capitalize()
-    )
-    
-    # Selector de campeón (filtrado por posición)
-    champion = st.selectbox(
-        "Campeón",
-        options=df[df['Position'] == position]['championName'].unique()
-    )
-    
-    # Obtener stats del usuario
-    user_stats = df[
-        (df['championName'] == champion) & 
-        (df['Position'] == position)
-    ].mean()
-    
-    # Botón de análisis
-    if st.button("Analizar vs Grandmaster+"):
-        with st.spinner("Comparando con datos élite..."):
-            # 1. Filtrar y calcular stats (solo columnas numéricas)
-            numeric_cols = ['kda', 'goldPerMinute', 'damagePerMinute', 'teamDamagePercentage', 'win']
-            filtered_df = df[
-                (df['championName'] == champion) & 
-                (df['Position'] == position)
-            ][numeric_cols]
+
+if st.button("Analizar vs Grandmaster+"):
+    try:
+        # Obtener datos comparativos
+        comparison_df, analysis = analyze_champion_performance(df, champion, position)
+        
+        # Mostrar tabla comparativa
+        st.dataframe(
+            comparison_df.style.highlight_max(axis=1, color='#90EE90'),
+            hide_index=True,
+            width=1000
+        )
+        
+        # Mostrar análisis de IA
+        st.subheader("🔍 Análisis Comparativo")
+        st.write(analysis)
+        
+        # Mostrar imagen del campeón (desde tus datos)
+        if not pd.isna(player_stats['championImage']):
+            st.image(player_stats['championImage'], width=150)
             
-            if filtered_df.empty:
-                st.error("No hay datos para esta combinación")
-                
-            user_stats = filtered_df.mean().to_dict()
-            games_analyzed = len(filtered_df)
-            
-            # 2. Obtener stats de Grandmaster
-            gm_stats = scrape_lolalytics_gm(champion, position)
-            
-            if "error" in gm_stats:
-                st.error(gm_stats["error"])
-            else:
-                # 3. Mostrar comparativa
-                gm_kda_str = f"{gm_stats['kda'][0]}/{gm_stats['kda'][1]}/{gm_stats['kda'][2]}"
-                
-                comp_df = pd.DataFrame({
-                    'Métrica': ['KDA', 'GPM', 'DPM', 'Dmg Share %', 'Win Rate %'],
-                    'Tú': [
-                        f"{user_stats['kda']:.2f}",
-                        f"{user_stats['goldPerMinute']:.1f}",
-                        f"{user_stats['damagePerMinute']:.1f}",
-                        f"{user_stats['teamDamagePercentage']:.1f}",
-                        f"{user_stats['win']*100:.1f}"
-                    ],
-                    'Grandmaster+': [
-                        gm_kda_str,
-                        f"{gm_stats['gpm']:.1f}",
-                        f"{gm_stats['dpm']:.1f}",
-                        f"{gm_stats['dmg_share']:.1f}",
-                        f"{gm_stats['win_rate']:.1f}"
-                    ]
-                })
-                st.dataframe(
-                    comp_df.style.highlight_max(axis=1, color='#90EE90'),
-                    width=800
-                )
-                
-                # Análisis de IA
-                st.subheader("🤖 Diagnóstico por IA")
-                prompt = f"""
-                Eres un analista profesional de League of Legends. Analiza estos datos:
-
-                [Contexto]
-                - Jugador: {champion} en {position}
-                - Partidas analizadas: {len(user_stats)}
-
-                [Comparativa]
-                - KDA: {user_kda} (Tú) vs {gm_kda_str} (GM+)
-                - GPM: {user_stats['goldPerMinute']:.1f} vs {gm_stats['gpm']:.1f}
-                - DPM: {user_stats['damagePerMinute']:.1f} vs {gm_stats['dpm']:.1f}
-                - % Daño: {user_stats['teamDamagePercentage']:.1f}% vs {gm_stats['dmg_share']:.1f}%
-                - Win Rate: {user_stats['win']*100:.1f}% vs {gm_stats['win_rate']:.1f}%
-
-                [Instrucciones]
-                Genera un análisis en español con:
-                1. Diagnóstico (1 oración)
-                2. 3 áreas clave para mejorar (enfocado en las mayores diferencias)
-                3. 1 consejo específico para {champion} en {position} según el meta actual
-                
-                Usa emojis y sé conciso (máx 300 caracteres).
-                """
-                response = model.generate_content(prompt)
-                st.success(response.text)
-                
-                # Gráfico comparativo
-                fig = px.bar(
-                    comp_df.melt(id_vars='Métrica'),
-                    x='Métrica',
-                    y='value',
-                    color='variable',
-                    barmode='group',
-                    title=f"{champion} en {position} | Comparativa",
-                    labels={'value': '', 'variable': ''},
-                    color_discrete_map={
-                        'Tú': '#FF4B4B',
-                        'Grandmaster+': '#00CC96'
-                    }
-                )
-                st.plotly_chart(fig, use_container_width=True)
+    except ValueError as e:
+        st.error(str(e))
+    except Exception as e:
+        st.error(f"Error inesperado: {str(e)}")
