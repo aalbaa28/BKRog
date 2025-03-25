@@ -522,7 +522,7 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
         USER QUESTION: "{user_input}"
 
         FULL DATA CONTEXT:
-        - Dataset includes {len(df)} rows with the following columns: {', '.join(df.columns)}
+        - Dataset includes {len(df)/5} rows with the following columns: {', '.join(df.columns)}
 
         NUMERIC STATS:
         {json.dumps(numeric_stats, indent=2)}
