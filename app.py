@@ -529,40 +529,66 @@ def get_active_examples(user_question, k=2):
     top_indices = np.argsort(sim_scores)[-k:][::-1]
     return [active_prompt_examples[i] for i in top_indices]
 
-
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # Convert DataFrame to analyzable string format
-        data_str = df[['championName', 'goldPerMinute', 'damagePerMinute', 'kda', 'win', 'EnemyChampion']].to_string()
+        # 1. Preprocesado de datos clave
+        stats = {
+            'champ_stats': df.groupby('championName').agg({
+                'win': ['count', 'mean'],
+                'kda': 'mean',
+                'goldPerMinute': 'mean'
+            }).round(2).to_dict(),
+            'matchups': df.groupby(['championName', 'EnemyChampion'])['win'].mean().unstack().round(2).to_dict(),
+            'position_stats': df.groupby('Position').agg({
+                'win': 'mean',
+                'kda': 'mean'
+            }).round(2).to_dict()
+        }
 
+        # 2. Prompt optimizado
         prompt = f"""
-        You're a League of Legends data analyst. Answer the question concisely using ONLY this match data:
+        Eres un analista de LoL. Responde ÚNICAMENTE con datos exactos de estas estadísticas:
 
-        {data_str}
+        {stats}
 
-        Global Stats:
-        - Matches: {len(df)/5}
-        - Champions: {df['championName'].nunique()}
+        Reglas estrictas:
+        1. Solo datos numéricos del diccionario proporcionado
+        2. Máximo 15 palabras
+        3. Prohibido añadir análisis no solicitado
+        4. Formato: [VALOR] [UNIDAD] (ej: "65% win rate")
 
-        Rules:
-        1. Respond with JUST the factual answer
-        2. Use exact values from the data
-        3. No explanations or reasoning
-        4. Max 2 sentences
+        Pregunta: "{user_input}"
+        Respuesta concisa:"""
 
-        Question: "{user_input}"
-        Answer: """
+        # 3. Modelo determinista
+        model = genai.GenerativeModel('gemini-1.5-flash',
+                                  generation_config={
+                                      "temperature": 0,
+                                      "max_output_tokens": 50
+                                  })
 
-        model = genai.GenerativeModel('gemini-1.5-pro',
-                                   generation_config={"temperature": 0.3})  # More deterministic
         response = model.generate_content(prompt)
+        return response.text.strip()
 
-        # Extract just the answer (remove any residual reasoning)
-        clean_answer = response.text.split('\n')[0].strip()
-        return clean_answer if clean_answer else "No answer generated"
+    except Exception:
+        # 4. Fallback automático con pandas
+        try:
+            if "average" in user_input.lower() and "gold" in user_input.lower():
+                champ = df.groupby('championName')['goldPerMinute'].mean().idxmax()
+                val = df.groupby('championName')['goldPerMinute'].mean().max()
+                return f"{champ} ({val} GPM)"
 
-    except Exception as e:
-        return f"Data analysis error"
+            elif "times played" in user_input.lower() or "veces" in user_input.lower():
+                champ = next((name for name in df['championName'].unique()
+                            if name.lower() in user_input.lower()), None)
+                if champ:
+                    count = df['championName'].value_counts().get(champ, 0)
+                    return f"{count} matches"
+
+            return "Data not available"
+
+        except Exception:
+            return "Could not process request"
 
 
 # Streamlit Interface
