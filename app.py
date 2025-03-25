@@ -1,11 +1,13 @@
 import json
 import os
-import numpy as np
+
 import google.generativeai as genai
+import numpy as np
 import pandas as pd
 import streamlit as st
-from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+
 # -------- CONFIGURAR IA
 
 
@@ -527,32 +529,7 @@ def get_active_examples(user_question, k=2):
     top_indices = np.argsort(sim_scores)[-k:][::-1]
     return [active_prompt_examples[i] for i in top_indices]
 
-def analyze_champion(champion: str, df: pd.DataFrame) -> str:
-    champion = champion.strip().title()
-    champ_data = df[df['championName'].str.strip().str.title() == champion]
 
-    if champ_data.empty:
-        return f"No data found for {champion}"
-
-    # Active-Prompt for champion analysis
-    active_examples = get_active_examples(f"How is {champion} performing?")
-    prompt = f"""
-    Champion Analysis Template:
-    {"".join([f"Q: {ex['question']}\nCoT: {ex['cot']}\nA: {ex['answer']}\n\n" for ex in active_examples])}
-
-    Data for {champion}:
-    {champ_data[['Position', 'win', 'kda', 'goldPerMinute']].to_string()}
-
-    Generate comprehensive analysis in bullet points:
-    1. Start with overall performance (win rate, matches played)
-    2. Break down by position if applicable
-    3. Include key metrics (KDA, gold, damage)
-    4. Highlight notable matchups
-    """
-
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content(prompt)
-    return response.text
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
         # Convert DataFrame to analyzable string format
@@ -564,7 +541,7 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
         {data_str}
 
         Global Stats:
-        - Matches: {len(df)}
+        - Matches: {len(df)/5}
         - Champions: {df['championName'].nunique()}
 
         Rules:
@@ -586,54 +563,6 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
 
     except Exception as e:
         return f"Data analysis error"
-
-
-def analyze_champion(champion: str, df: pd.DataFrame) -> str:
-    champ_data = df[df['championName'].str.strip().str.title() == champion]
-
-    if champ_data.empty:
-        return f"No data found for {champion}"
-
-    # Generate CoT analysis
-    cot_steps = [
-        f"1. Filter matches where championName = '{champion}'",
-        "2. Calculate core performance metrics:",
-        f"   - Win rate: {champ_data['win'].mean()*100:.1f}% ({len(champ_data)} matches)",
-        f"   - Average KDA: {champ_data['kda'].mean():.2f}",
-        f"   - Gold/Min: {champ_data['goldPerMinute'].mean():.0f}",
-        "3. Analyze by position (if applicable):"
-    ]
-
-    # Add position breakdown
-    for pos in champ_data['Position'].unique():
-        pos_data = champ_data[champ_data['Position'] == pos]
-        cot_steps.append(
-            f"   - {pos}: {pos_data['win'].mean()*100:.1f}% WR, "
-            f"KDA {pos_data['kda'].mean():.2f}, "
-            f"{pos_data['goldPerMinute'].mean():.0f} GPM"
-        )
-
-    # Add matchups if available
-    if 'EnemyChampion' in champ_data.columns:
-        cot_steps.append("4. Key matchups:")
-        top_matchups = champ_data['EnemyChampion'].value_counts().head(3)
-        for enemy, count in top_matchups.items():
-            wr = champ_data[champ_data['EnemyChampion'] == enemy]['win'].mean()*100
-            cot_steps.append(f"   - vs {enemy}: {count} games, {wr:.1f}% WR")
-
-    # Build final response
-    response = (
-        "🔍 **Chain-of-Thought:**\n" + "\n".join(cot_steps) +
-        "\n\n📊 **Performance Summary:**\n" +
-        f"{champion} ({len(champ_data)} matches):\n" +
-        f"- Win Rate: {champ_data['win'].mean()*100:.1f}%\n" +
-        f"- Avg KDA: {champ_data['kda'].mean():.2f}\n" +
-        f"- Gold/Min: {champ_data['goldPerMinute'].mean():.0f}\n" +
-        f"- Positions: {', '.join(champ_data['Position'].unique())}"
-    )
-
-    return response
-
 
 
 # Streamlit Interface
