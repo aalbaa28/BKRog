@@ -505,122 +505,116 @@ model = genai.GenerativeModel('gemini-1.5-pro')
         
 
 # --------------------------------------
-# 1. Función para scrapear u.gg (Grandmaster+)
-def scrape_ugg_grandmaster(champion, position):
-    """
-    Extrae stats de u.gg para un campeón y posición en Grandmaster+.
-    Ejemplo: https://u.gg/lol/champions/ksante/build?role=mid&rank=master_plus
-    """
+# Scraper mejorado de u.gg con caché
+@st.cache_data(ttl=3600)  # Cache por 1 hora
+def scrape_ugg_stats(champion, position):
     url = f"https://u.gg/lol/champions/{champion.lower()}/build?role={position.lower()}&rank=master_plus"
     headers = {"User-Agent": "Mozilla/5.0"}
     
     try:
         response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
-        script = soup.find("script", string=re.compile("goldPerMin"))
+        script = str(soup.find("script", string=re.compile("goldPerMin")))
         
         return {
-            'champion': champion,
-            'position': position,
-            'gm_kda': re.search(r'"kda":"([\d\.:]+)"', str(script)).group(1),
-            'gm_gpm': float(re.search(r'"goldPerMin":(\d+\.\d+)', str(script)).group(1)),
-            'gm_dpm': float(re.search(r'"damagePerMin":(\d+\.\d+)', str(script)).group(1)),
-            'gm_wr': re.search(r'"winRate":(\d+\.\d+)', str(script)).group(1) + "%"
+            'gm_kda': re.search(r'"kda":"([\d\.:]+)"', script).group(1),
+            'gm_gpm': float(re.search(r'"goldPerMin":(\d+\.\d+)', script).group(1)),
+            'gm_dpm': float(re.search(r'"damagePerMin":(\d+\.\d+)', script).group(1)),
+            'gm_wr': float(re.search(r'"winRate":(\d+\.\d+)', script).group(1)),
+            'gm_dmg_share': float(re.search(r'"damagePercent":(\d+\.\d+)', script).group(1))
         }
     except Exception as e:
-        return {"error": f"Error en u.gg: {str(e)}"}
+        return {"error": str(e)}
 
-# 2. Función para filtrar tus scrims
-def filter_your_stats(df, champion, position):
-    """Filtra tus datos por campeón y posición"""
-    filtered = df[
-        (df['championName'].str.lower() == champion.lower()) & 
-        (df['Position'].str.lower() == position.lower())
-    ]
-    
-    if filtered.empty:
-        return None
-    
-    return {
-        'your_kda': filtered['KDA'].mean(),
-        'your_gpm': filtered['GPM'].mean(),
-        'your_dpm': filtered['DPM'].mean(),
-        'your_wr': filtered['WinRate'].mean()
-    }
+# Interfaz Streamlit
+st.title("🏆 Comparador Avanzado: Tus Stats vs Grandmaster+")
 
-# Interfaz
-st.title("🔍 Comparador: Tus Scrims vs Grandmaster+")
 df = combined_df
 st.session_state.df = df
 
-# Selectores
+# 2. Selectores
 if 'df' in st.session_state:
     df = st.session_state.df
     
-    col1, col2 = st.columns(2)
-    with col1:
-        position = st.selectbox(
-            "Línea",
-            options=df['Position'].unique(),
-            format_func=lambda x: x.capitalize()
-        )
-    with col2:
-        champion = st.selectbox(
-            "Campeón",
-            options=df[df['Position'] == position]['championName'].unique()
-        )
-
-    # Botón de análisis
+    # Selector de posición
+    position = st.selectbox(
+        "Selecciona posición",
+        options=sorted(df['Position'].unique()),
+        index=0,
+        format_func=lambda x: x.capitalize()
+    )
+    
+    # Dataframe filtrado por posición
+    avg_stats = calculate_average_by_champion(df, position)
+    
+    # Selector de campeón basado en la posición
+    champion = st.selectbox(
+        "Selecciona campeón",
+        options=avg_stats['championName'],
+        format_func=lambda x: x
+    )
+    
+    # 3. Obtener stats del usuario
+    user_stats = avg_stats[avg_stats['championName'] == champion].iloc[0]
+    
+    # 4. Comparar con u.gg
     if st.button("Comparar con Grandmaster+"):
-        with st.spinner("Analizando..."):
-            # Obtener datos
-            your_stats = filter_your_stats(df, champion, position)
-            gm_stats = scrape_ugg_grandmaster(champion, position)
+        with st.spinner("Obteniendo datos de referencia..."):
+            gm_stats = scrape_ugg_stats(champion, position)
             
-            if not your_stats or "error" in gm_stats:
-                st.error("No hay datos para esta combinación o error en u.gg")
+            if "error" in gm_stats:
+                st.error(f"Error en u.gg: {gm_stats['error']}")
             else:
                 # Tabla comparativa
-                st.subheader("📊 Tus Stats vs Grandmaster+")
-                comp_df = pd.DataFrame({
-                    'Metric': ['KDA', 'GPM', 'DPM', 'Win Rate'],
+                st.subheader(f"📊 {champion} en {position}")
+                comp_data = {
+                    'Métrica': ['KDA', 'Gold/Min', 'Damage/Min', 'Dmg Share %', 'Win Rate %'],
                     'Tú': [
-                        f"{your_stats['your_kda']:.2f}",
-                        f"{your_stats['your_gpm']:.1f}",
-                        f"{your_stats['your_dpm']:.1f}",
-                        f"{your_stats['your_wr']:.1f}%"
+                        f"{user_stats['kda']:.2f}",
+                        f"{user_stats['goldPerMinute']:.1f}",
+                        f"{user_stats['damagePerMinute']:.1f}",
+                        f"{user_stats['teamDamagePercentage']:.1f}",
+                        f"{user_stats['winrate']:.1f}"
                     ],
-                    'Grandmaster+': [
+                    'GM+': [
                         gm_stats['gm_kda'],
                         f"{gm_stats['gm_gpm']:.1f}",
                         f"{gm_stats['gm_dpm']:.1f}",
-                        gm_stats['gm_wr']
+                        f"{gm_stats['gm_dmg_share']:.1f}",
+                        f"{gm_stats['gm_wr']:.1f}"
                     ]
-                })
-                st.dataframe(comp_df.style.highlight_max(axis=1, color='#90EE90'), width=800)
+                }
+                st.dataframe(pd.DataFrame(comp_data), width=800)
                 
                 # Análisis de IA
                 st.subheader("🤖 Análisis Comparativo")
                 prompt = f"""
-                Comparativa de {champion} en {position}:
-                - KDA: Tú ({your_stats['your_kda']:.2f}) vs GM+ ({gm_stats['gm_kda']})
-                - GPM: Tú ({your_stats['your_gpm']:.1f}) vs GM+ ({gm_stats['gm_gpm']:.1f})
-                - DPM: Tú ({your_stats['your_dpm']:.1f}) vs GM+ ({gm_stats['gm_dpm']:.1f})
-                - Win Rate: Tú ({your_stats['your_wr']:.1f}%) vs GM+ ({gm_stats['gm_wr']})
+                Contexto:
+                - Jugador: {champion} en {position}
+                - Partidas analizadas: {user_stats['side']}
                 
-                Genera un análisis que incluya:
-                1. Breve diagnóstico (ej: "Estás X% por debajo en GPM")
-                2. 2 áreas clave para mejorar
-                3. 1 consejo estratégico para este campeón en {position}
+                Comparativa (Tú vs Grandmaster+):
+                - KDA: {user_stats['kda']:.2f} vs {gm_stats['gm_kda']}
+                - Oro/min: {user_stats['goldPerMinute']:.1f} vs {gm_stats['gm_gpm']:.1f}
+                - Daño/min: {user_stats['damagePerMinute']:.1f} vs {gm_stats['gm_dpm']:.1f}
+                - % Daño equipo: {user_stats['teamDamagePercentage']:.1f}% vs {gm_stats['gm_dmg_share']:.1f}%
+                - Win Rate: {user_stats['winrate']:.1f}% vs {gm_stats['gm_wr']:.1f}%
+                
+                Genera:
+                1. Diagnóstico conciso (máx 2 oraciones)
+                2. 3 áreas específicas de mejora priorizadas
+                3. 1 consejo estratégico para {champion} en {position}
                 """
                 response = model.generate_content(prompt)
                 st.write(response.text)
-                
+
                 # Gráfico comparativo
                 st.plotly_chart(
                     px.bar(
-                        comp_df.melt(id_vars='Metric'), 
-                        x='Metric', y='value', color='variable',
+                        pd.DataFrame(comp_data).melt(id_vars='Métrica'),
+                        x='Métrica',
+                        y='value',
+                        color='variable',
                         barmode='group',
                         title=f"{champion} en {position}",
                         labels={'value': 'Valor', 'variable': 'Grupo'}
