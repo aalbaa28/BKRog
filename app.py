@@ -567,25 +567,36 @@ if 'df' in st.session_state:
     # Botón de análisis
     if st.button("Analizar vs Grandmaster+"):
         with st.spinner("Comparando con datos élite..."):
+            # 1. Filtrar y calcular stats (solo columnas numéricas)
+            numeric_cols = ['kda', 'goldPerMinute', 'damagePerMinute', 'teamDamagePercentage', 'win']
+            filtered_df = df[
+                (df['championName'] == champion) & 
+                (df['Position'] == position)
+            ][numeric_cols]
+            
+            if filtered_df.empty:
+                st.error("No hay datos para esta combinación")
+                
+            user_stats = filtered_df.mean().to_dict()
+            games_analyzed = len(filtered_df)
+            
+            # 2. Obtener stats de Grandmaster
             gm_stats = scrape_lolalytics_gm(champion, position)
             
             if "error" in gm_stats:
                 st.error(gm_stats["error"])
             else:
-                # Formatear KDA
+                # 3. Mostrar comparativa
                 gm_kda_str = f"{gm_stats['kda'][0]}/{gm_stats['kda'][1]}/{gm_stats['kda'][2]}"
-                user_kda = f"{user_stats['kda']:.2f}"
                 
-                # Tabla comparativa
-                st.subheader(f"📊 {champion} en {position}")
                 comp_df = pd.DataFrame({
                     'Métrica': ['KDA', 'GPM', 'DPM', 'Dmg Share %', 'Win Rate %'],
                     'Tú': [
-                        user_kda,
+                        f"{user_stats['kda']:.2f}",
                         f"{user_stats['goldPerMinute']:.1f}",
                         f"{user_stats['damagePerMinute']:.1f}",
                         f"{user_stats['teamDamagePercentage']:.1f}",
-                        f"{user_stats['win']*100:.1f}"  # Asumiendo que 'win' es 0/1
+                        f"{user_stats['win']*100:.1f}"
                     ],
                     'Grandmaster+': [
                         gm_kda_str,
