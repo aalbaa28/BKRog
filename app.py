@@ -1,6 +1,6 @@
 import json
 import os
-
+import numpy as np
 import google.generativeai as genai
 import pandas as pd
 import streamlit as st
