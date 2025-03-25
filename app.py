@@ -657,9 +657,10 @@ class AdvancedLoLAnalyzer:
             top_matchups = matchups.head(3)
             response = f"Top matchups for {our_champ}:\n"
             for idx, row in top_matchups.iterrows():
-                response += (f"- vs {idx}: {int(row[('win', 'count')]} games, "
-                            f"{row[('win', 'mean')]*100:.1f}% WR, "
+               response += (f"- vs {idx}: {int(row[('win', 'count')])} games, "
+                            f"{row[('win', 'mean')] * 100:.1f}% WR, "
                             f"KDA {row[('kda', 'mean')]:.2f}\n")
+
             return response
         else:
             return "Specify a champion (e.g. 'Yone matchups')"
