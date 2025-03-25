@@ -1,7 +1,9 @@
-import streamlit as st
-import pandas as pd
 import json
 import os
+
+import google.generativeai as genai
+import pandas as pd
+import streamlit as st
 
 # -------- CONFIGURAR IA
 
@@ -14,7 +16,7 @@ def load_json_data(folder):
     try:
         # List all JSON files in the folder
         json_files = [file for file in os.listdir(folder) if file.endswith('.json')]
-        
+
         for file in json_files:
             file_path = os.path.join(folder, file)
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -31,7 +33,7 @@ def extract_player_data(participant):
     challenges = participant['challenges']
     champion_id = participant['championId']
     champion_image_url = f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/{champion_id}.png"
-    
+
     data = {
         'riotIdGameName': participant['riotIdGameName'],
         'championImage': champion_image_url,  # URL of the champion's image
@@ -49,16 +51,16 @@ def extract_player_data(participant):
 # Function to convert match data into a DataFrame
 def get_matchup_data(json_data):
     matchups = []
-    
+
     # List of players we are interested in
     players_of_interest = ["BKR Szygenda", "BKR Rhilech", "BKR OMON", "WD BOOSHI", "BKR Doss"]
-    
+
     # Iterate through all participants in the game
     for participant in json_data['participants']:
         if participant['riotIdGameName'] in players_of_interest:
             # Extract player data
             player_data = extract_player_data(participant)
-            
+
             # Determine player position
             if participant['riotIdGameName'] == "BKR Szygenda":
                 player_data['Position'] = 'Top'
@@ -70,11 +72,11 @@ def get_matchup_data(json_data):
                 player_data['Position'] = 'Adc'
             elif participant['riotIdGameName'] == "BKR Doss":
                 player_data['Position'] = 'Supp'
-            
+
             # Find the opponent in the same lane
             team_id = participant['teamId']
             participant_index = json_data['participants'].index(participant)  # Get current participant's index
-            
+
             if team_id == 100:
                 # If teamId is 100, the opponent will be 5 positions ahead
                 opponent_index = participant_index + 5
@@ -83,7 +85,7 @@ def get_matchup_data(json_data):
                 opponent_index = participant_index - 5
 
             opponent = json_data['participants'][opponent_index]
-            
+
             # Add enemy champion to the data dictionary
             if opponent:
                 player_data['EnemyChampion'] = opponent['championName']
@@ -91,14 +93,14 @@ def get_matchup_data(json_data):
             else:
                 player_data['EnemyChampion'] = "Unknown"
                 player_data['EnemyChampionImage'] = None
-            
+
             # Add additional game information
             player_data['Date'] = pd.to_datetime(json_data['gameCreation'], unit='ms')
             player_data['gameName'] = json_data['gameName']
             player_data['gameVersion'] = json_data['gameVersion']
-            
+
             matchups.append(player_data)
-    
+
     df = pd.DataFrame(matchups)
     return df
 
@@ -106,7 +108,7 @@ def get_matchup_data(json_data):
 def calculate_average_by_champion(df, position=None):
     if position:
         df = df[df['Position'] == position]
-    
+
     # Group by championName and calculate the mean for numeric columns
     avg_df = df.groupby('championName').agg({
         'kda': 'mean',
@@ -118,24 +120,24 @@ def calculate_average_by_champion(df, position=None):
         'championImage': 'first',  # Take the first image for the champion (it should be the same for each)
         'win': 'sum'  # Sum of wins to calculate WR
     }).reset_index()
-    
+
     # Calculate Win Rate (WR) as (wins / total games) * 100
     avg_df['winrate'] = (avg_df['win'] / avg_df['side']) * 100
-    
+
     # Sort by total games played (side count) and then by KDA for better display
     avg_df = avg_df.sort_values(by='side', ascending=False)
-    
+
     return avg_df
 
 # Function to generate player summary (win rate, average stats)
 def get_player_summary(df):
     player_summary = []
-    
+
     players_of_interest = ["BKR Szygenda", "BKR Rhilech", "BKR OMON", "WD BOOSHI", "BKR Doss"]
-    
+
     for player in players_of_interest:
         player_data = df[df['riotIdGameName'] == player]
-        
+
         if not player_data.empty:
             total_games = len(player_data)
             wins = player_data['win'].sum()
@@ -157,7 +159,7 @@ def get_player_summary(df):
                 'Avg Damage per Minute': avg_damage_per_minute,
                 'Avg Team Damage %': avg_team_damage_percentage
             })
-    
+
     return pd.DataFrame(player_summary)
 
 # Load data from the folder
@@ -168,7 +170,7 @@ json_data = load_json_data(json_folder)
 if json_data:
     # Combine all JSON data into a single DataFrame
     combined_df = pd.DataFrame()
-    
+
     for data in json_data:
         # Get matchup data for this JSON
         df = get_matchup_data(data)
@@ -177,7 +179,7 @@ if json_data:
 
         # Filter by side (blue or red)
 
-    
+
     side_filter = st.sidebar.selectbox("Filter by side", ['All', 'blue', 'red'])
 
     # Cambiar el color de la web según la selección
@@ -190,7 +192,7 @@ if json_data:
             """
             <style>
             .stApp {
-               
+
             }
             h1, h2, h3, h4, h5, h6, strong {
                 color: #0288D1;  /* Texto en azul oscuro para títulos y negritas */
@@ -226,7 +228,7 @@ if json_data:
             """
             <style>
             .stApp {
-                
+
             }
             h1, h2, h3, h4, h5, h6, strong {
                 color: #C62828;  /* Texto en rojo oscuro para títulos y negritas */
@@ -262,7 +264,7 @@ if json_data:
             """
             <style>
             .stApp {
-                
+
             }
             h1, h2, h3, h4, h5, h6, strong {
                 color: black;  /* Texto en negro para títulos y negritas */
@@ -322,14 +324,14 @@ if json_data:
     if 'Date' in combined_df.columns:
         combined_df = combined_df[(combined_df['Date'] >= start_date) & (combined_df['Date'] <= end_date)]
 
-    
+
     # Create tabs for each position
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Top", "Jgl", "Mid", "Adc", "Supp", "By Champion", "By Player", "AI Assistant"])
 
     def display_table_with_images(df, position):
         st.header(position)
         pos_data = df[df['Position'] == position]
-        
+
         if not pos_data.empty:
             for index, row in pos_data.iterrows():
                 col1, col2, col3 = st.columns([1, 1, 4])  # Add a column for the enemy champion
@@ -340,13 +342,13 @@ if json_data:
                         st.image(champion_image, width=50, caption=row['championName'])  # Player's champion
                     else:
                         st.write("No image available")
-                
+
                 with col2:
                     if row['EnemyChampionImage']:
                         st.image(row['EnemyChampionImage'], width=50, caption=row['EnemyChampion'])  # Enemy champion
                     else:
                         st.write("Unknown")
-                
+
                 with col3:
                     st.write(f"**{row['championName']} vs {row['EnemyChampion']}**")
                     st.write(f"Date: {row['Date'].strftime('%Y-%m-%d')}")
@@ -378,17 +380,17 @@ if json_data:
     # Calculate average metrics by champion and display in the new tab
     with tab6:
         st.header("Average Metrics by Champion")
-        
+
         # Add a position filter for this tab
         position_filter = st.selectbox("Filter by position", ['All', 'Top', 'Jgl', 'Mid', 'Adc', 'Supp'])
-        
+
         # Calculate the average metrics, considering the selected position
         avg_champion_df = calculate_average_by_champion(combined_df, position_filter if position_filter != 'All' else None)
-        
+
         # Display the champion summary with image, count, and average stats
         for index, row in avg_champion_df.iterrows():
             col1, col2, col3 = st.columns([1, 4, 3])
-            
+
             with col1:
                 # Ensure 'championImage' exists before attempting to access it
                 champion_image = row.get('championImage', None)
@@ -396,7 +398,7 @@ if json_data:
                     st.image(champion_image, width=50, caption=row['championName'])
                 else:
                     st.write("No image available")
-            
+
             with col2:
                 st.subheader(f"{row['championName']}")
                 st.write(f"Games Played: {row['side']}")
@@ -408,12 +410,12 @@ if json_data:
                 st.write(f"Gold per Minute: {row['goldPerMinute']:.2f}")
                 st.write(f"Damage per Minute: {row['damagePerMinute']:.2f}")
                 st.write(f"Team Damage Percentage: {row['teamDamagePercentage']*100:.2f}%")
-            
+
             st.write("---")
 
 with tab7:  # Assuming this is the last tab. You can rename it if needed.
     st.header("By Player")
-    
+
     # Get player summary DataFrame
     player_summary_df = get_player_summary(combined_df)
 
@@ -425,16 +427,16 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
         with col1:
             # Estilo bonito para mostrar el nombre del jugador
             st.markdown(
-                f"<h3 style='color:#7f8c8d; font-weight:bold;'>{row['Player']}</h3>", 
+                f"<h3 style='color:#7f8c8d; font-weight:bold;'>{row['Player']}</h3>",
                 unsafe_allow_html=True
             )
 
             st.write(f"Total Games: {row['Total Games']}")
             st.write(f"Wins: {row['Wins']}")
-            
+
             winrate_color = "green" if row['WinRate'] >= 50 else "red"
             st.markdown(f"<p style='color:{winrate_color};'><b>Winrate</b>: {row['WinRate']:.2f}%</p>", unsafe_allow_html=True)
-            
+
             st.write(f"Avg KDA: {row['Avg KDA']:.2f}")
             st.write(f"Avg Deaths: {row['Avg Deaths']:.2f}")
             st.write(f"Avg Gold per Minute: {row['Avg Gold per Minute']:.2f}")
@@ -445,13 +447,13 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
             # You can add a small image, chart or any additional info for each player
             winrate_color = "green" if row['WinRate'] >= 50 else "red"
             st.markdown(f"<span style='color:{winrate_color}; font-size: 25px;'>🔼</span>", unsafe_allow_html=True)  # You can use a simple icon or image
-    
+
     # Show the player summary table below the details
     st.subheader("Player Summary Table")
     st.dataframe(player_summary_df.style.format({
-        'WinRate': "{:.2f}%", 
-        'Avg KDA': "{:.2f}", 
-        'Avg Deaths': "{:.2f}", 
+        'WinRate': "{:.2f}%",
+        'Avg KDA': "{:.2f}",
+        'Avg Deaths': "{:.2f}",
         'Avg Gold per Minute': "{:.2f}",
         'Avg Damage per Minute': "{:.2f}",
         'Avg Team Damage %': "{:.2f}%"
@@ -461,7 +463,7 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
     def calculate_daily_winrate(df):
         # Ensure 'Date' is in datetime format
         df['Date'] = pd.to_datetime(df['Date'])
-        
+
         # Group by date and calculate winrate (percentage of wins per day)
         daily_winrate = df.groupby(df['Date'].dt.date)['win'].agg(
             win_rate='mean'  # Calculate the mean winrate for each day
@@ -469,7 +471,7 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 
         # Convert win_rate to percentage
         daily_winrate['win_rate'] = daily_winrate['win_rate'] * 100
-        
+
         return daily_winrate
 
     # Assume `combined_df` is the dataframe with the match data
@@ -490,3 +492,26 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
         csv_file = 'filtered_matchups.csv'
         combined_df.to_csv(csv_file, index=False)
         st.success(f"CSV saved as {csv_file}")
+
+
+
+api_key = st.secrets["api_key"]
+genai.configure(api_key=api_key)
+
+# Función para obtener respuesta de Gemini
+def get_gemini_response(prompt):
+    model = genai.GenerativeModel("gemini-pro")
+    response = model.generate_content(prompt)
+    return response.text
+
+with tab8:
+    st.title("Chat con Gemini AI 🚀")
+    user_input = st.text_area("Escribe tu consulta:")
+
+    if st.button("Enviar", key="chat_gemini"):
+        if user_input:
+            respuesta = get_gemini_response(user_input)
+            st.write("### Respuesta de Gemini:")
+            st.write(respuesta)
+        else:
+            st.warning("Por favor, escribe una consulta.")
