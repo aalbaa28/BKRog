@@ -1,6 +1,6 @@
 import json
 import os
-
+import re  # <-- Añade esto junto con tus otros imports
 import google.generativeai as genai
 import numpy as np
 import pandas as pd
