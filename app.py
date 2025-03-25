@@ -530,70 +530,92 @@ def get_active_examples(user_question, k=2):
     return [active_prompt_examples[i] for i in top_indices]
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # 1. Precompute key statistics
+        # 1. Detección automática de tipo de pregunta
+        user_input = user_input.lower()
+
+        # Caso 1: Preguntas sobre matchups (ej: "enemies against Rell")
+        if any(keyword in user_input for keyword in ["against", "vs", "versus", "contra", "frente a"]):
+            parts = [p.strip() for p in re.split("against|vs|versus|contra|frente a", user_input)]
+            if len(parts) > 1:
+                our_champ = None
+                enemy_champ = None
+
+                # Buscar nombres de campeones en la pregunta
+                for champ in df['championName'].unique():
+                    champ_lower = champ.lower()
+                    if champ_lower in parts[0]:
+                        our_champ = champ
+                    if champ_lower in parts[1]:
+                        enemy_champ = champ
+
+                # Solo nuestro campeón especificado
+                if our_champ and not enemy_champ:
+                    matchups = df[df['championName'].str.lower() == our_champ.lower()]
+                    if not matchups.empty:
+                        enemies = matchups['EnemyChampion'].unique()
+                        win_rate = matchups['win'].mean() * 100
+                        return (
+                            f"Matchups for {our_champ} ({len(matchups)} games):\n"
+                            f"- Enemies faced: {', '.join(enemies)}\n"
+                            f"- Win rate: {win_rate:.1f}%"
+                        )
+
+                # Matchup específico (nuestro campeón vs enemigo)
+                elif our_champ and enemy_champ:
+                    specific_matches = df[
+                        (df['championName'].str.lower() == our_champ.lower()) &
+                        (df['EnemyChampion'].str.lower() == enemy_champ.lower())
+                    ]
+                    if not specific_matches.empty:
+                        wins = specific_matches['win'].sum()
+                        total = len(specific_matches)
+                        return (
+                            f"Matchup {our_champ} vs {enemy_champ}:\n"
+                            f"- Games played: {total}\n"
+                            f"- Win rate: {(wins/total)*100:.1f}%\n"
+                            f"- Avg KDA: {specific_matches['kda'].mean():.2f}"
+                        )
+                    else:
+                        return f"No matches found for {our_champ} vs {enemy_champ}"
+
+        # Caso 2: Conteo de partidas (ej: "times played Rell")
+        elif any(keyword in user_input for keyword in ["times played", "veces jugado", "matches with"]):
+            champ = next((name for name in df['championName'].unique()
+                        if name.lower() in user_input), None)
+            if champ:
+                count = len(df[df['championName'].str.lower() == champ.lower()])
+                return f"Played {count} matches as {champ}"
+
+        # Caso 3: Preguntas generales (usa Gemini con contexto)
         stats = {
-            'champions': {
-                'play_counts': df['championName'].value_counts().to_dict(),
-                'avg_kda': df.groupby('championName')['kda'].mean().round(2).to_dict(),
-                'avg_gold': df.groupby('championName')['goldPerMinute'].mean().round(1).to_dict(),
-                'win_rates': df.groupby('championName')['win'].mean().mul(100).round(1).to_dict()
-            },
-            'matchups': df.groupby(['championName', 'EnemyChampion'])['win'].mean()
-                        .mul(100).round(1).unstack().to_dict(),
-            'positions': {
-                'avg_kda': df.groupby('Position')['kda'].mean().round(2).to_dict(),
-                'win_rates': df.groupby('Position')['win'].mean().mul(100).round(1).to_dict()
-            }
+            'champs_played': df['championName'].value_counts().to_dict(),
+            'common_matchups': df['EnemyChampion'].value_counts().head(5).to_dict(),
+            'position_stats': df.groupby('Position').agg({
+                'win': 'mean',
+                'kda': 'mean'
+            }).to_dict()
         }
 
-        # 2. Optimized prompt
         prompt = f"""
-        You're a LoL data analyst. Answer strictly using these computed stats:
+        Analyze this LoL match data:
         {stats}
 
-        Rules:
-        1. Only use the provided numbers
-        2. Maximum 15 words
-        3. No explanations
-        4. Format: [VALUE] [UNIT] (e.g. "65.3% win rate")
-
         Question: "{user_input}"
-        Exact answer:"""
 
-        # 3. Deterministic model
-        model = genai.GenerativeModel('gemini-1.5-flash',
-                                   generation_config={
-                                       "temperature": 0,
-                                       "max_output_tokens": 50
-                                   })
+        Rules:
+        1. Use only the provided statistics
+        2. Be extremely concise
+        3. Never invent numbers
 
+        Answer:
+        """
+
+        model = genai.GenerativeModel('gemini-1.5-flash')
         response = model.generate_content(prompt)
-        answer = response.text.strip()
+        return response.text
 
-        # 4. Validation
-        if any(str(value) in answer for value in stats.values()):
-            return answer
-        raise ValueError("Invalid response format")
-
-    except Exception:
-        # 5. Direct pandas fallback
-        try:
-            if "average gold" in user_input.lower():
-                champ = df.groupby('championName')['goldPerMinute'].mean().idxmax()
-                val = df.groupby('championName')['goldPerMinute'].mean().max()
-                return f"{champ} ({val:.1f} GPM)"
-
-            if any(phrase in user_input.lower() for phrase in ["times played", "matches with"]):
-                champ = next((name for name in df['championName'].unique()
-                            if name.lower() in user_input.lower()), None)
-                if champ:
-                    count = df['championName'].value_counts().get(champ, 0)
-                    return f"{count} matches"
-
-            return "Data not available"
-
-        except Exception:
-            return "Could not process request"
+    except Exception as e:
+        return f"Error processing request: {str(e)}"
 
 
 # Streamlit Interface
