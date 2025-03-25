@@ -5,9 +5,6 @@ import google.generativeai as genai
 import numpy as np
 import pandas as pd
 import streamlit as st
-from riotwatcher import LolWatcher, ApiError
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
 import requests
 from bs4 import BeautifulSoup
 
