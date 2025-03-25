@@ -520,7 +520,7 @@ with tab8:
     #models = genai.list_models()
     #st.write("Modelos disponibles:", models)
     st.title("Consulta a Gemini AI")
-    st.write(combined_df.head)
+    st.write(combined_df.head())
     user_input = st.text_area("Escribe tu consulta:")
 
     if st.button("Enviar", key="chat_gemini"):
