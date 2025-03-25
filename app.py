@@ -498,64 +498,93 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 api_key = st.secrets["api_key"]
 # Configuration
 genai.configure(api_key=st.secrets["api_key"])
-def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
+def get_champion_analysis(champion_name: str, df: pd.DataFrame) -> str:
     try:
-        # 1. Standardize column names and clean data
+        # 1. Standardize and filter data
         df = df.rename(columns=lambda x: x.strip().lower())
-        for col in ['championname', 'enemychampion', 'position']:
-            if col in df.columns:
-                df[col] = df[col].str.strip().str.title()
+        champion_name = champion_name.strip().title()
+        champ_data = df[df['championname'] == champion_name]
 
-        # 2. Create optimized data summary
-        context = {
-            "key_metrics": {
-                "champion_stats": df['championname'].value_counts().head(10).to_dict(),
-                "position_stats": df['position'].value_counts().to_dict(),
-                "gold_stats": f"Avg: {df['goldperminute'].mean():.0f} | Max: {df['goldperminute'].max():.0f}",
-                "damage_stats": f"Avg: {df['damageperminute'].mean():.0f} | Max: {df['damageperminute'].max():.0f}"
+        if champ_data.empty:
+            return f"No data found for {champion_name} in the records."
+
+        # 2. Calculate core metrics
+        analysis = {
+            'basic_stats': {
+                'play_count': len(champ_data),
+                'win_rate': champ_data['win'].mean() * 100,
+                'avg_kda': champ_data['kda'].mean(),
+                'avg_gold': champ_data['goldperminute'].mean(),
+                'avg_damage': champ_data['damageperminute'].mean()
             },
-            "sample_records": df.head(2).to_dict('records')
+            'position_stats': champ_data['position'].value_counts().to_dict(),
+            'matchups': {
+                'best': champ_data.groupby('enemychampion')['win'].mean().idxmax(),
+                'worst': champ_data.groupby('enemychampion')['win'].mean().idxmin()
+            } if 'enemychampion' in df.columns else None,
+            'performance_trends': {
+                'gold_victory': champ_data.groupby('win')['goldperminute'].mean().to_dict(),
+                'damage_victory': champ_data.groupby('win')['damageperminute'].mean().to_dict()
+            }
         }
 
-        # 3. Generate efficient prompt
-        prompt = f"""You're a LoL analyst. Use this match data to answer concisely:
+        # 3. Generate comprehensive report
+        report = [
+            f"📊 {champion_name} Performance Analysis ({analysis['basic_stats']['play_count']} matches):",
+            f"• Win Rate: {analysis['basic_stats']['win_rate']:.1f}%",
+            f"• Avg KDA: {analysis['basic_stats']['avg_kda']:.2f}",
+            f"• Gold/Min: {analysis['basic_stats']['avg_gold']:.0f}",
+            f"• Damage/Min: {analysis['basic_stats']['avg_damage']:.0f}",
+            "\n📍 Positions:",
+            *[f"• {pos}: {count} games" for pos, count in analysis['position_stats'].items()]
+        ]
 
-        USER QUESTION: "{user_input}"
+        if analysis['matchups']:
+            report.extend([
+                "\n⚔️ Key Matchups:",
+                f"• Strongest vs: {analysis['matchups']['best']}",
+                f"• Weakest vs: {analysis['matchups']['worst']}"
+            ])
 
-        DATA CONTEXT:
-        • Columns: {list(df.columns)}
-        • Total matches: {len(df)}
+        report.extend([
+            "\n📈 Performance Trends:",
+            f"• Gold when winning: {analysis['performance_trends']['gold_victory'].get(True, 0):.0f} vs losing: {analysis['performance_trends']['gold_victory'].get(False, 0):.0f}",
+            f"• Damage when winning: {analysis['performance_trends']['damage_victory'].get(True, 0):.0f} vs losing: {analysis['performance_trends']['damage_victory'].get(False, 0):.0f}"
+        ])
 
-        KEY METRICS:
-        • Champions: {context['key_metrics']['champion_stats']}
-        • Positions: {context['key_metrics']['position_stats']}
-        • Gold/min: {context['key_metrics']['gold_stats']}
-        • Damage/min: {context['key_metrics']['damage_stats']}
+        return "\n".join(report)
 
-        SAMPLE MATCHES:
-        1. {context['sample_records'][0]}
-        2. {context['sample_records'][1]}
+    except Exception as e:
+        return f"Analysis error: {str(e)}"
 
-        RESPONSE RULES:
-        1. Use ALL columns appropriately
-        2. For champion questions, verify counts first
-        3. For matchups, use championname vs enemychampion
-        4. Keep responses under 100 words
-        5. Format:
-           - 🎯 Answer
-           - 📌 Evidence
+
+def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
+    try:
+        # Detect champion queries
+        champion = next((name for name in df['championname'].unique()
+                        if name.lower() in user_input.lower()), None)
+
+        if champion:
+            return get_champion_analysis(champion, df)
+
+        # General question fallback
+        prompt = f"""Analyze this LoL data concisely:
+
+        Question: "{user_input}"
+
+        Data Columns: {list(df.columns)}
+        Sample Size: {len(df)} matches
+
+        Rules:
+        1. Use exact column names from above
+        2. For champion questions, use championname column
+        3. For matchups, use enemychampion vs win rate
+        4. Keep response under 5 bullet points
         """
 
-        # 4. Call Gemini Flash efficiently
-        model = genai.GenerativeModel('gemini-1.5-flash',
-                                    generation_config={
-                                        "temperature": 0.3,
-                                        "max_output_tokens": 500
-                                    })
+        model = genai.GenerativeModel('gemini-1.5-flash')
         response = model.generate_content(prompt)
-
-        # 5. Post-process for clarity
-        return response.text.replace("•", "  •")  # Better bullet formatting
+        return response.text
 
     except Exception as e:
         return f"Error: {str(e)}"
