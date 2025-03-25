@@ -498,38 +498,67 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 api_key = st.secrets["api_key"]
 # Configuration
 genai.configure(api_key=st.secrets["api_key"])
-
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # Convert dates to string format to avoid issues with non-serializable types
-        for col in df.select_dtypes(include=['datetime64[ns]']):
-            df[col] = df[col].dt.strftime('%Y-%m-%d')  # Only show the date in 'YYYY-MM-DD' format
+        # 1. Standardize column names and clean data
+        df = df.rename(columns=lambda x: x.strip().lower())
+        for col in ['championname', 'enemychampion', 'position']:
+            if col in df.columns:
+                df[col] = df[col].str.strip().str.title()
 
-        # 1. Prepare the data context
-        df_json = df.to_json(orient='records')  # Convert the entire dataframe to JSON format
+        # 2. Create optimized data summary
+        context = {
+            "key_metrics": {
+                "champion_stats": df['championname'].value_counts().head(10).to_dict(),
+                "position_stats": df['position'].value_counts().to_dict(),
+                "gold_stats": f"Avg: {df['goldperminute'].mean():.0f} | Max: {df['goldperminute'].max():.0f}",
+                "damage_stats": f"Avg: {df['damageperminute'].mean():.0f} | Max: {df['damageperminute'].max():.0f}"
+            },
+            "sample_records": df.head(2).to_dict('records')
+        }
 
-        # 2. Create the prompt with the user's query and the data
-        prompt = f"""You are a League of Legends data assistant. Answer the user's question based solely on the provided data.
+        # 3. Generate efficient prompt
+        prompt = f"""You're a LoL analyst. Use this match data to answer concisely:
 
         USER QUESTION: "{user_input}"
 
-        AVAILABLE DATA:
-        {df_json}
+        DATA CONTEXT:
+        • Columns: {list(df.columns)}
+        • Total matches: {len(df)}
 
-        RESPONSE:
-        Answer accurately and concisely, only addressing the question asked. Do not add additional information or analysis. If the question is about specific statistics, dates, or any data in the dataframe, respond with only the relevant data.
+        KEY METRICS:
+        • Champions: {context['key_metrics']['champion_stats']}
+        • Positions: {context['key_metrics']['position_stats']}
+        • Gold/min: {context['key_metrics']['gold_stats']}
+        • Damage/min: {context['key_metrics']['damage_stats']}
+
+        SAMPLE MATCHES:
+        1. {context['sample_records'][0]}
+        2. {context['sample_records'][1]}
+
+        RESPONSE RULES:
+        1. Use ALL columns appropriately
+        2. For champion questions, verify counts first
+        3. For matchups, use championname vs enemychampion
+        4. Keep responses under 100 words
+        5. Format:
+           - 🎯 Answer
+           - 📌 Evidence
         """
 
-        # 3. Call the Gemini model with the prompt
-        model = genai.GenerativeModel('gemini-1.5-flash')  # Use the appropriate model
+        # 4. Call Gemini Flash efficiently
+        model = genai.GenerativeModel('gemini-1.5-flash',
+                                    generation_config={
+                                        "temperature": 0.3,
+                                        "max_output_tokens": 500
+                                    })
         response = model.generate_content(prompt)
 
-        # 4. Return the generated response
-        return response.text.strip()  # Clean any unnecessary spaces
+        # 5. Post-process for clarity
+        return response.text.replace("•", "  •")  # Better bullet formatting
 
     except Exception as e:
-        return f"An error occurred while processing the request: {str(e)}"
-
+        return f"Error: {str(e)}"
 
 
 
