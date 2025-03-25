@@ -498,68 +498,56 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 api_key = st.secrets["api_key"]
 # Configuration
 genai.configure(api_key=st.secrets["api_key"])
+
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # 1. Prepare complete data context
-        full_columns = df.columns.tolist()
+        # 1. Prepare concise data summary for context
+        numeric_stats = df.describe().to_dict()  # Summary of numeric columns
+        categorical_values = {
+            col: df[col].unique().tolist() for col in df.select_dtypes(include=['object']).columns
+        }  # Summary of categorical columns
+        champion_counts = df['championName'].value_counts().to_dict()  # Champion count summary
 
-        # Generate comprehensive data summary
-        data_summary = {
-            'numeric_stats': df.describe().to_dict(),
-            'categorical_values': {
-                col: df[col].unique().tolist()
-                for col in df.select_dtypes(include=['object']).columns
-            },
-            'champion_counts': df['championName'].value_counts().to_dict()
-        }
+        # Convert dataframe to JSON for better readability in the model
+        df_json = df.to_json(orient='records')
 
-        # 2. Create fully autonomous prompt
-        prompt = f"""You're a LoL data analyst with COMPLETE dataset access. Analyze thoroughly.
+        # 2. Create the prompt with relevant data and user query
+        prompt = f"""
+        You are a League of Legends (LoL) data analyst. Analyze the provided dataset thoroughly.
 
         USER QUESTION: "{user_input}"
 
         FULL DATA CONTEXT:
-        - Total matches: {len(df)}
-        - All columns: {full_columns}
+        - Dataset includes {len(df)} rows with the following columns: {', '.join(df.columns)}
 
-        NUMERIC STATS (examples):
-        {str(data_summary['numeric_stats'])[:1000]}... [truncated]
+        NUMERIC STATS:
+        {json.dumps(numeric_stats, indent=2)}
 
-        CATEGORICAL VALUES (examples):
-        {str(data_summary['categorical_values'])[:500]}... [truncated]
+        CATEGORICAL VALUES:
+        {json.dumps(categorical_values, indent=2)}
 
-        CHAMPION COUNTS (verified):
-        {data_summary['champion_counts']}
+        CHAMPION COUNTS:
+        {json.dumps(champion_counts, indent=2)}
+
+        FULL DATA (first 3 entries shown for context):
+        {str(df_json)[:1000]}... [truncated]
 
         ANALYSIS RULES:
-        1. Use ALL available columns intelligently
-        2. For champion counts, use these verified numbers
-        3. For other metrics, calculate from raw data
-        4. Never say "I don't know" - infer from patterns
-        5. Structure response:
-           a) Direct answer
-           b) Supporting evidence
-           c) Data caveats if any
+        1. Analyze based on all available data.
+        2. Use all numeric and categorical statistics in your analysis.
+        3. Answer in a structured format: direct answer -> supporting evidence -> any data caveats.
         """
 
-        # 3. Call Gemini with complete access
-        model = genai.GenerativeModel('gemini-1.5-pro',
-                                    generation_config={
-                                        "temperature": 0.3,
-                                        "max_output_tokens": 1000
-                                    })  # Using pro for larger context
+        # 3. Call the Gemini model for response generation
+        model = genai.GenerativeModel('gemini-1.5-pro')  # Use the appropriate model version
         response = model.generate_content(prompt)
 
-        # 4. Add verification layer
-        response_text = response.text
-        for champ, count in data_summary['champion_counts'].items():
-            if champ.lower() in user_input.lower() and str(count) not in response_text:
-                response_text = f"Verified {champ} matches: {count}\n\n" + response_text
-
-        return response_text
+        # 4. Return the model's response
+        return response.text
 
     except Exception as e:
-        return f"Analysis error: {str(e)}"
+        return f"An error occurred while processing the request: {str(e)}"
+
 
 # Streamlit Interface
 with tab8:
