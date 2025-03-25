@@ -550,12 +550,8 @@ def filter_your_stats(df, champion, position):
 
 # Interfaz
 st.title("🔍 Comparador: Tus Scrims vs Grandmaster+")
-
-# Carga de datos
-uploaded_file = st.file_uploader("Sube tu CSV de scrims", type=["csv"])
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-    st.session_state.df = df
+df = combined_df
+st.session_state.df = df
 
 # Selectores
 if 'df' in st.session_state:
