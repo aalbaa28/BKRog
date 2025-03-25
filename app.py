@@ -556,7 +556,7 @@ def analyze_champion(champion: str, df: pd.DataFrame) -> str:
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
         # Convert DataFrame to analyzable string format
-        data_str = df[['championName', 'goldPerMinute', 'damagePerMinute', 'kda', 'win']].head(10).to_string()
+        data_str = df[['championName', 'goldPerMinute', 'damagePerMinute', 'kda', 'win', 'EnemyChampion']].to_string()
 
         prompt = f"""
         You're a League of Legends data analyst. Answer the question concisely using ONLY this match data:
