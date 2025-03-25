@@ -5,8 +5,11 @@ import google.generativeai as genai
 import numpy as np
 import pandas as pd
 import streamlit as st
+from riotwatcher import LolWatcher, ApiError
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+import requests
+from bs4 import BeautifulSoup
 
 # -------- CONFIGURAR IA
 
@@ -501,259 +504,102 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 api_key = st.secrets["api_key"]
 # Configuration
 genai.configure(api_key=st.secrets["api_key"])
+model = genai.GenerativeModel('gemini-1.5-pro')
+        
 
-class AdvancedLoLAnalyzer:
-    def __init__(self, df):
-        self.df = self._preprocess_data(df)
-
-    def _preprocess_data(self, df):
-        """Advanced data preprocessing using your exact columns"""
-        # Convert dates and calculate additional metrics
-        df['Date'] = pd.to_datetime(df['Date'])
-
-        # Calculate KDA if not already present (using kills/deaths/assists if available)
-        if 'kda' not in df.columns:
-            if all(col in df.columns for col in ['kills', 'deaths', 'assists']):
-                df['kda'] = (df['kills'] + df['assists']) / df['deaths'].replace(0, 1)
-            else:
-                df['kda'] = df['kda']  # Use existing column
-
-        # Champion performance metrics
-        self.champ_stats = df.groupby('championName').agg({
-            'win': ['count', 'mean'],
-            'kda': 'mean',
-            'goldPerMinute': 'mean',
-            'damagePerMinute': 'mean',
-            'teamDamagePercentage': 'mean'
-        })
-
-        # Position performance metrics
-        self.position_stats = df.groupby('Position').agg({
-            'win': 'mean',
-            'kda': 'mean',
-            'goldPerMinute': 'mean',
-            'damagePerMinute': 'mean'
-        })
-
-        # Matchup analysis
-        self.matchup_stats = df.groupby(['championName', 'EnemyChampion']).agg({
-            'win': ['count', 'mean'],
-            'kda': 'mean'
-        })
-
-        return df
-
-    def answer_question(self, question):
-        """Main analysis function that handles all question types"""
-        question = question.lower()
-
-        try:
-            # Champion-specific questions
-            if any(word in question for word in ['champion', 'performance', 'how is']):
-                return self._analyze_champion(question)
-
-            # Matchup questions
-            elif any(word in question for word in ['against', 'vs', 'versus', 'matchup']):
-                return self._analyze_matchups(question)
-
-            # Economy questions
-            elif any(word in question for word in ['gold', 'gpm', 'income']):
-                return self._analyze_economy(question)
-
-            # Damage questions
-            elif any(word in question for word in ['damage', 'dpm', 'dmg']):
-                return self._analyze_damage(question)
-
-            # KDA questions
-            elif 'kda' in question:
-                return self._analyze_kda(question)
-
-            # Position questions
-            elif any(word in question for word in ['position', 'role', 'top', 'mid', 'jungle', 'adc', 'support']):
-                return self._analyze_position(question)
-
-            # General questions
-            else:
-                return self._general_analysis(question)
-
-        except Exception as e:
-            return f"Could not analyze: {str(e)}"
-
-    def _analyze_champion(self, question):
-        """Analyze champion performance"""
-        champ = next((c for c in self.df['championName'].unique()
-                     if c.lower() in question), None)
-
-        if not champ:
-            return "Please specify a champion name"
-
-        stats = self.champ_stats.loc[champ]
-        matches = int(stats[('win', 'count')])
-        winrate = stats[('win', 'mean')] * 100
-        kda = stats[('kda', 'mean')]
-        gpm = stats[('goldPerMinute', 'mean')]
-        dpm = stats[('damagePerMinute', 'mean')]
-        dmg_share = stats[('teamDamagePercentage', 'mean')] * 100
-
-        return (f"{champ} Performance ({matches} matches):\n"
-                f"- Win Rate: {winrate:.1f}%\n"
-                f"- KDA: {kda:.2f}\n"
-                f"- Gold/Min: {gpm:.1f}\n"
-                f"- Damage/Min: {dpm:.1f}\n"
-                f"- Damage Share: {dmg_share:.1f}%")
-
-    def _analyze_matchups(self, question):
-        """Analyze champion matchups"""
-        parts = [p.strip() for p in re.split("against|vs|versus|contra", question.lower())]
-        our_champ = next((c for c in self.df['championName'].unique()
-                         if c.lower() in parts[0]), None)
-        enemy_champ = next((c for c in self.df['EnemyChampion'].unique()
-                           if c.lower() in parts[1]), None) if len(parts) > 1 else None
-
-        if our_champ and enemy_champ:
-            # Specific matchup analysis
-            try:
-                matchup = self.matchup_stats.loc[(our_champ, enemy_champ)]
-                games = int(matchup[('win', 'count')])
-                winrate = matchup[('win', 'mean')] * 100
-                kda = matchup[('kda', 'mean')]
-                return (f"{our_champ} vs {enemy_champ}:\n"
-                        f"- Games: {games}\n"
-                        f"- Win Rate: {winrate:.1f}%\n"
-                        f"- Avg KDA: {kda:.2f}")
-            except KeyError:
-                return f"No matchup data for {our_champ} vs {enemy_champ}"
-        elif our_champ:
-            # All matchups for a champion
-            matchups = self.matchup_stats.loc[our_champ].sort_values(
-                ('win', 'mean'), ascending=False)
-            top_matchups = matchups.head(3)
-            response = f"Top matchups for {our_champ}:\n"
-            for idx, row in top_matchups.iterrows():
-                response += (f"- vs {idx}: {int(row[('win', 'count')])} games, "
-                    f"{row[('win', 'mean')] * 100:.1f}% WR, "
-                    f"KDA {row[('kda', 'mean')]:.2f}\n")
-
-            return response
-        else:
-            return "Specify a champion (e.g. 'Yone matchups')"
-
-    def _analyze_kda(self, question):
-        """KDA-specific analysis"""
-        if 'best' in question:
-            best = self.champ_stats[('kda', 'mean')].idxmax()
-            value = self.champ_stats[('kda', 'mean')].max()
-            return f"Best KDA: {best} ({value:.2f})"
-        elif 'worst' in question:
-            worst = self.champ_stats[('kda', 'mean')].idxmin()
-            value = self.champ_stats[('kda', 'mean')].min()
-            return f"Worst KDA: {worst} ({value:.2f})"
-        else:
-            avg_kda = self.df['kda'].mean()
-            return f"Average KDA: {avg_kda:.2f}"
-
-    def _analyze_economy(self, question):
-        """Gold economy analysis"""
-        if 'best' in question:
-            best = self.champ_stats[('goldPerMinute', 'mean')].idxmax()
-            value = self.champ_stats[('goldPerMinute', 'mean')].max()
-            return f"Best GPM: {best} ({value:.1f})"
-        elif 'worst' in question:
-            worst = self.champ_stats[('goldPerMinute', 'mean')].idxmin()
-            value = self.champ_stats[('goldPerMinute', 'mean')].min()
-            return f"Worst GPM: {worst} ({value:.1f})"
-        else:
-            avg_gpm = self.df['goldPerMinute'].mean()
-            return f"Average GPM: {avg_gpm:.1f}"
-
-    def _analyze_damage(self, question):
-        """Damage analysis"""
-        if 'best' in question:
-            best = self.champ_stats[('damagePerMinute', 'mean')].idxmax()
-            value = self.champ_stats[('damagePerMinute', 'mean')].max()
-            return f"Best DPM: {best} ({value:.1f})"
-        elif 'worst' in question:
-            worst = self.champ_stats[('damagePerMinute', 'mean')].idxmin()
-            value = self.champ_stats[('damagePerMinute', 'mean')].min()
-            return f"Worst DPM: {worst} ({value:.1f})"
-        else:
-            avg_dpm = self.df['damagePerMinute'].mean()
-            return f"Average DPM: {avg_dpm:.1f}"
-
-    def _analyze_position(self, question):
-        """Position/role analysis"""
-        pos = next((p for p in self.df['Position'].unique()
-                   if p.lower() in question), None)
-
-        if not pos:
-            return "Specify position (Top, Jungle, Mid, ADC, Support)"
-
-        stats = self.position_stats.loc[pos]
-        return (f"{pos} Performance:\n"
-                f"- Win Rate: {stats['win']*100:.1f}%\n"
-                f"- Avg KDA: {stats['kda']:.2f}\n"
-                f"- Avg GPM: {stats['goldPerMinute']:.1f}\n"
-                f"- Avg DPM: {stats['damagePerMinute']:.1f}")
-
-    def _general_analysis(self, question):
-        """Fallback for complex questions"""
-        context = {
-            "champions": list(self.df['championName'].unique()),
-            "positions": list(self.df['Position'].unique()),
-            "global_stats": {
-                "matches": len(self.df),
-                "win_rate": self.df['win'].mean() * 100,
-                "avg_kda": self.df['kda'].mean(),
-                "avg_gpm": self.df['goldPerMinute'].mean(),
-                "avg_dpm": self.df['damagePerMinute'].mean()
-            }
+# --------------------------------------
+# Scraper mejorado de u.gg
+def scrape_ugg_stats(champion, role):
+    """
+    Extrae stats de u.gg para un campeón y línea específicos.
+    Ejemplo: https://u.gg/lol/champions/ksante/build?role=top&rank=master_plus
+    """
+    url = f"https://u.gg/lol/champions/{champion}/build?role={role}&rank=master_plus"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Extraer stats clave del JSON incrustado
+        script = soup.find("script", string=re.compile("goldPerMin"))
+        data = str(script)
+        
+        return {
+            "champion": champion,
+            "role": role,
+            "gpm": float(re.search(r'"goldPerMin":(\d+\.\d+)', data).group(1)),
+            "dpm": float(re.search(r'"damagePerMin":(\d+\.\d+)', data).group(1)),
+            "kda": re.search(r'"kda":"([\d\.:]+)"', data).group(1),
+            "win_rate": re.search(r'"winRate":(\d+\.\d+)', data).group(1) + "%"
         }
+    except Exception as e:
+        return {"error": str(e)}
 
-        prompt = f"""
-        You're a LoL analyst. Answer concisely using this data:
-        {context}
+# Interfaz
+st.title("🔍 Comparador de Campeones v/s Grandmaster+")
 
-        Question: "{question}"
+with st.expander("📊 Instrucciones"):
+    st.write("""
+    1. Selecciona tu línea y campeón.
+    2. Ingresa tus estadísticas actuales.
+    3. La IA te dará un análisis comparativo.
+    """)
 
-        Rules:
-        1. Max 2 sentences
-        2. Only use provided data
-        3. Include exact numbers when possible
+# --- Paso 1: Selección de línea y campeón ---
+col1, col2 = st.columns(2)
+with col1:
+    role = st.selectbox(
+        "Línea",
+        ["top", "jungle", "mid", "adc", "support"],
+        format_func=lambda x: x.capitalize()
+    )
+with col2:
+    champion = st.text_input("Campeón (ej: ksante):", "ksante").lower().replace("'", "").replace(" ", "")
 
-        Answer:
-        """
+# --- Paso 2: Input de stats del usuario ---
+st.subheader("Tus Estadísticas")
+user_stats = {
+    "gpm": st.number_input("Tu GPM:", min_value=0.0, value=350.0, step=1.0),
+    "dpm": st.number_input("Tu DPM:", min_value=0.0, value=500.0, step=1.0),
+    "kda": st.text_input("Tu KDA (ej: 3.5):", "2.8"),
+    "win_rate": st.number_input("Tu Win Rate %:", min_value=0, max_value=100, value=50)
+}
 
-        # Uncomment to use Gemini/OpenAI
-        model = genai.GenerativeModel('gemini-1.5-pro')
-        response = model.generate_content(prompt)
-        return response.text
-
-        return "Ask specific questions about champions, matchups, or stats"
-
-
-# Streamlit Interface
-with tab8:
-    st.title("🤖 Autonomous LoL Analyst")
-
-    # Data context
-    with st.expander("📊 Current Data Overview"):
-        st.write(f"Analyzing {len(combined_df)} matches")
-        st.write("Columns available:", list(combined_df.columns))
-
-    user_input = st.text_area("Ask anything about the matches:",
-                            placeholder="e.g. 'Is Rell performing well this patch?'",
-                            height=120)
-
-    if st.button("Get Deep Analysis", type="primary"):
-        if user_input:
-            with st.spinner("🧠 Conducting full analysis..."):
-                analyzer = AdvancedLoLAnalyzer(combined_df)
-
-                answer = analyzer.answer_question(user_input)
-                st.success(answer)
-
-                # Show relevant data
-                with st.expander("📊 View related data"):
-                    st.dataframe(df.head())
+# --- Paso 3: Análisis comparativo ---
+if st.button("Comparar con Grandmaster+"):
+    with st.spinner(f"Analizando {champion} en {role}..."):
+        gm_stats = scrape_ugg_stats(champion, role)
+        
+        if "error" in gm_stats:
+            st.error(gm_stats["error"])
         else:
-            st.warning("Please enter a question")
+            # Gráfico comparativo
+            st.subheader("📊 Comparación Directa")
+            df = pd.DataFrame({
+                "Metric": ["GPM", "DPM", "KDA", "Win Rate"],
+                "Tú": [user_stats["gpm"], user_stats["dpm"], user_stats["kda"], f"{user_stats['win_rate']}%"],
+                "Grandmaster+": [gm_stats["gpm"], gm_stats["dpm"], gm_stats["kda"], gm_stats["win_rate"]]
+            })
+            st.dataframe(df.style.highlight_max(axis=1, color="#90EE90"), width=600)
+            
+            # Análisis de IA
+            st.subheader("🤖 Análisis por IA")
+            prompt = f"""
+            Comparativa de {champion} en {role}:
+            - GPM: Tú ({user_stats['gpm']}) vs GM+ ({gm_stats['gpm']})
+            - DPM: Tú ({user_stats['dpm']}) vs GM+ ({gm_stats['dpm']})
+            - KDA: Tú ({user_stats['kda']}) vs GM+ ({gm_stats['kda']})
+            - Win Rate: Tú ({user_stats['win_rate']}%) vs GM+ ({gm_stats['win_rate']})
+            
+            Genera un análisis que incluya:
+            1. Breve diagnóstico (ej: "Estás un 20% por debajo en GPM")
+            2. 3 áreas específicas para mejorar
+            3. 1 consejo sobre el matchup actual
+            """
+            response = model.generate_content(prompt)
+            st.write(response.text)
+            
+            # Mejores builds (opcional)
+            st.subheader("🛠️ Build Recomendada en GM+")
+            st.image(f"https://www.u.gg/lol/champions/{champion}/build", caption="Build actualizada")
