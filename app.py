@@ -501,56 +501,35 @@ genai.configure(api_key=st.secrets["api_key"])
 
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # Convertir todas las fechas (si las hay) a cadenas de texto
+        # Convert dates to string format to avoid issues with non-serializable types
         for col in df.select_dtypes(include=['datetime64[ns]']):
-            df[col] = df[col].dt.strftime('%Y-%m-%d %H:%M:%S')  # Formato de fecha que prefieras
+            df[col] = df[col].dt.strftime('%Y-%m-%d')  # Only show the date in 'YYYY-MM-DD' format
 
-        # 1. Prepare concise data summary for context
-        numeric_stats = df.describe().to_dict()  # Summary of numeric columns
-        categorical_values = {
-            col: df[col].unique().tolist() for col in df.select_dtypes(include=['object']).columns
-        }  # Summary of categorical columns
-        champion_counts = df['championName'].value_counts().to_dict()  # Champion count summary
+        # 1. Prepare the data context
+        df_json = df.to_json(orient='records')  # Convert the entire dataframe to JSON format
 
-        # Convert dataframe to JSON for better readability in the model
-        df_json = df.to_json(orient='records')
-
-        # 2. Create the prompt with relevant data and user query
-        prompt = f"""
-        You are a League of Legends (LoL) data analyst. Analyze the provided dataset thoroughly.
+        # 2. Create the prompt with the user's query and the data
+        prompt = f"""You are a League of Legends data assistant. Answer the user's question based solely on the provided data.
 
         USER QUESTION: "{user_input}"
 
-        FULL DATA CONTEXT:
-        - Dataset includes {len(df)/5} rows with the following columns: {', '.join(df.columns)}
+        AVAILABLE DATA:
+        {df_json}
 
-        NUMERIC STATS:
-        {json.dumps(numeric_stats, indent=2)}
-
-        CATEGORICAL VALUES:
-        {json.dumps(categorical_values, indent=2)}
-
-        CHAMPION COUNTS:
-        {json.dumps(champion_counts, indent=2)}
-
-        FULL DATA (first 3 entries shown for context):
-        {str(df_json)[:1000]}... [truncated]
-
-        ANALYSIS RULES:
-        1. Analyze based on all available data.
-        2. Use all numeric and categorical statistics in your analysis.
-        3. Answer in a structured format: direct answer -> supporting evidence -> any data caveats.
+        RESPONSE:
+        Answer accurately and concisely, only addressing the question asked. Do not add additional information or analysis. If the question is about specific statistics, dates, or any data in the dataframe, respond with only the relevant data.
         """
 
-        # 3. Call the Gemini model for response generation
-        model = genai.GenerativeModel('gemini-1.5-pro')  # Use the appropriate model version
+        # 3. Call the Gemini model with the prompt
+        model = genai.GenerativeModel('gemini-1.5-pro')  # Use the appropriate model
         response = model.generate_content(prompt)
 
-        # 4. Return the model's response
-        return response.text
+        # 4. Return the generated response
+        return response.text.strip()  # Clean any unnecessary spaces
 
     except Exception as e:
         return f"An error occurred while processing the request: {str(e)}"
+
 
 
 
