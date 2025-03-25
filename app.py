@@ -528,57 +528,62 @@ def get_active_examples(user_question, k=2):
     sim_scores = cosine_similarity([question_embed], example_embeds)[0]
     top_indices = np.argsort(sim_scores)[-k:][::-1]
     return [active_prompt_examples[i] for i in top_indices]
-
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # 1. Preprocesado de datos clave
+        # 1. Precompute key statistics
         stats = {
-            'champ_stats': df.groupby('championName').agg({
-                'win': ['count', 'mean'],
-                'kda': 'mean',
-                'goldPerMinute': 'mean'
-            }).round(2).to_dict(),
-            'matchups': df.groupby(['championName', 'EnemyChampion'])['win'].mean().unstack().round(2).to_dict(),
-            'position_stats': df.groupby('Position').agg({
-                'win': 'mean',
-                'kda': 'mean'
-            }).round(2).to_dict()
+            'champions': {
+                'play_counts': df['championName'].value_counts().to_dict(),
+                'avg_kda': df.groupby('championName')['kda'].mean().round(2).to_dict(),
+                'avg_gold': df.groupby('championName')['goldPerMinute'].mean().round(1).to_dict(),
+                'win_rates': df.groupby('championName')['win'].mean().mul(100).round(1).to_dict()
+            },
+            'matchups': df.groupby(['championName', 'EnemyChampion'])['win'].mean()
+                        .mul(100).round(1).unstack().to_dict(),
+            'positions': {
+                'avg_kda': df.groupby('Position')['kda'].mean().round(2).to_dict(),
+                'win_rates': df.groupby('Position')['win'].mean().mul(100).round(1).to_dict()
+            }
         }
 
-        # 2. Prompt optimizado
+        # 2. Optimized prompt
         prompt = f"""
-        Eres un analista de LoL. Responde ÚNICAMENTE con datos exactos de estas estadísticas:
-
+        You're a LoL data analyst. Answer strictly using these computed stats:
         {stats}
 
-        Reglas estrictas:
-        1. Solo datos numéricos del diccionario proporcionado
-        2. Máximo 15 palabras
-        3. Prohibido añadir análisis no solicitado
-        4. Formato: [VALOR] [UNIDAD] (ej: "65% win rate")
+        Rules:
+        1. Only use the provided numbers
+        2. Maximum 15 words
+        3. No explanations
+        4. Format: [VALUE] [UNIT] (e.g. "65.3% win rate")
 
-        Pregunta: "{user_input}"
-        Respuesta concisa:"""
+        Question: "{user_input}"
+        Exact answer:"""
 
-        # 3. Modelo determinista
+        # 3. Deterministic model
         model = genai.GenerativeModel('gemini-1.5-flash',
-                                  generation_config={
-                                      "temperature": 0,
-                                      "max_output_tokens": 50
-                                  })
+                                   generation_config={
+                                       "temperature": 0,
+                                       "max_output_tokens": 50
+                                   })
 
         response = model.generate_content(prompt)
-        return response.text.strip()
+        answer = response.text.strip()
+
+        # 4. Validation
+        if any(str(value) in answer for value in stats.values()):
+            return answer
+        raise ValueError("Invalid response format")
 
     except Exception:
-        # 4. Fallback automático con pandas
+        # 5. Direct pandas fallback
         try:
-            if "average" in user_input.lower() and "gold" in user_input.lower():
+            if "average gold" in user_input.lower():
                 champ = df.groupby('championName')['goldPerMinute'].mean().idxmax()
                 val = df.groupby('championName')['goldPerMinute'].mean().max()
-                return f"{champ} ({val} GPM)"
+                return f"{champ} ({val:.1f} GPM)"
 
-            elif "times played" in user_input.lower() or "veces" in user_input.lower():
+            if any(phrase in user_input.lower() for phrase in ["times played", "matches with"]):
                 champ = next((name for name in df['championName'].unique()
                             if name.lower() in user_input.lower()), None)
                 if champ:

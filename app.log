@@ -1,0 +1,144 @@
+2025-03-25 12:53:38,958 - INFO - Iniciando el proceso...
+2025-03-25 12:53:38,958 - INFO - Configurando credenciales de Google Cloud...
+2025-03-25 12:53:39,052 - INFO - Ejecutando consulta en BigQuery...
+2025-03-25 12:53:46,090 - INFO - Datos obtenidos correctamente. Tamaño del DataFrame: (7510, 2)
+2025-03-25 12:53:47,179 - INFO -                          DATESTAMP  p_rotura_bar  Turno temperatura
+0 2025-01-03 16:30:51.666000+01:00         203.0  Tarde    35.08611
+1 2025-01-03 16:34:52.203000+01:00         208.0  Tarde   35.487005
+2 2025-01-03 16:37:37.539000+01:00         208.0  Tarde   35.762565
+3 2025-01-03 16:40:22.913000+01:00         202.0  Tarde   36.038188
+4 2025-01-03 16:42:53.168000+01:00         193.0  Tarde   36.288613
+2025-03-25 12:53:47,195 - INFO - 7510
+2025-03-25 12:53:47,195 - INFO - Generando prompt para Gemini...
+2025-03-25 12:53:47,195 - INFO - Convirtiendo el DataFrame a formato CSV...
+2025-03-25 12:53:47,288 - INFO - Contando tokens...
+2025-03-25 12:53:50,049 - INFO - Total de tokens en el DataFrame: 263342
+2025-03-25 12:53:50,049 - INFO - Prompt generado exitosamente con 474187 caracteres.
+2025-03-25 12:53:50,049 - INFO - Enviando el prompt a Gemini...
+2025-03-25 12:54:12,489 - INFO - Procesando datos...
+2025-03-25 12:54:12,489 - INFO - Regresión lineal completada. R²: 0.0072361383013669345
+2025-03-25 12:54:12,514 - INFO - Generando gráfico 1: Rotura a lo largo del tiempo...
+2025-03-25 12:54:13,556 - INFO - Gráfico 1 convertido a base64.
+2025-03-25 12:54:13,556 - INFO - Generando gráfico 2: Evolución diaria del porcentaje de puntos...
+2025-03-25 12:54:13,974 - INFO - Gráfico 2 convertido a base64.
+2025-03-25 12:54:13,975 - INFO - Calculando el porcentaje de casos por turno...
+2025-03-25 12:54:13,976 - INFO - Total puntos: 7510, Puntos >240 bar: 118, R^2: 0.0072361383013669345, Porcentaje Turno Mañana: 39.83050847457627%, Porcentaje Turno Tarde: 25.423728813559322%, Porcentaje Turno Noche: 34.74576271186441%
+2025-03-25 12:54:13,976 - INFO - Respuesta de Gemini: ```json
+{
+  "resumen": "La presión evoluciona con fluctuaciones, presentando picos que superan los 240 bar en varias ocasiones.  Se observa una tendencia general a la baja en la presión entre los registros del 3 y 7 de enero, seguida de un periodo con mayor variabilidad y picos de presión hasta el 8 de enero.  A partir de este día, la presión sigue fluctuando, con algunos picos superiores a 240 bar. Existe un dato anómalo con una presión de 5598 bar el 8 de enero a las 10:25.  Los datos posteriores al 8 de enero a las 0:00 presentan valores negativos de temperatura, lo que podría indicar un error en la recolección de datos o una falla en el sensor.",
+  "causas": [
+    "Posibles fallas mecánicas en el sistema que regulan la presión (válvulas, bombas, etc.).",
+    "Sobrecarga en el sistema debido a un aumento repentino en la demanda.",
+    "Obstrucciones en las tuberías o conductos que limitan el flujo y aumentan la presión.",
+    "Errores en la medición de la presión (sensor defectuoso o mal calibrado). El dato de 5598 bar es un claro ejemplo de posible error de medición.",
+    "Condición operacional no prevista o no controlada.",
+    "Falta de mantenimiento preventivo del sistema de control de presión."
+  ],
+  "recomendaciones": [
+    "Inspección inmediata y mantenimiento de las partes del sistema que regulan la presión.",
+    "Revisión y calibración del sensor de presión para asegurar la exactitud de las mediciones. Investigar la causa del valor anómalo de 5598 bar.",
+    "Implementación de un sistema de alarma para alertar sobre valores de presión críticos, y revisar y ajustar los umbrales de alarma actuales.",
+    "Análisis del diseño del sistema para identificar posibles cuellos de botella o puntos de restricción en el flujo.",
+    "Investigar las condiciones operacionales durante los picos de presión para establecer una relación causa-efecto.",
+    "Establecer un programa de mantenimiento preventivo para minimizar el riesgo de fallas.",
+    "Implementar válvulas de seguridad o sistemas de alivio de presión para mitigar los picos.",
+    "Investigar la causa de los datos de temperatura negativos, que podrían ser un indicador de fallos en la recolección de datos o sensores."
+  ],
+  "relacion_temp": "No se puede establecer una clara relación entre la temperatura del núcleo y la presión basándose únicamente en estos datos.  Se necesitan más datos y un análisis más exhaustivo para determinar si existe una correlación significativa. La presencia de datos de temperatura negativos dificulta este análisis."
+}
+```
+
+2025-03-25 12:56:10,792 - INFO - Iniciando el proceso...
+2025-03-25 12:56:10,792 - INFO - Configurando credenciales de Google Cloud...
+2025-03-25 12:56:10,894 - INFO - Ejecutando consulta en BigQuery...
+2025-03-25 12:56:17,085 - INFO - Datos obtenidos correctamente. Tamaño del DataFrame: (7510, 2)
+2025-03-25 12:56:18,218 - INFO -                          DATESTAMP  p_rotura_bar  Turno temperatura
+0 2025-01-03 16:30:51.666000+01:00         203.0  Tarde    95.43055
+1 2025-01-03 16:34:52.203000+01:00         208.0  Tarde   97.435025
+2 2025-01-03 16:37:37.539000+01:00         208.0  Tarde   98.812825
+3 2025-01-03 16:40:22.913000+01:00         202.0  Tarde  100.190942
+4 2025-01-03 16:42:53.168000+01:00         193.0  Tarde  101.443067
+2025-03-25 12:56:18,233 - INFO - 7510
+2025-03-25 12:56:18,233 - INFO - Generando prompt para Gemini...
+2025-03-25 12:56:18,233 - INFO - Convirtiendo el DataFrame a formato CSV...
+2025-03-25 12:56:18,320 - INFO - Contando tokens...
+2025-03-25 12:56:21,698 - INFO - Total de tokens en el DataFrame: 262227
+2025-03-25 12:56:21,699 - INFO - Prompt generado exitosamente con 473696 caracteres.
+2025-03-25 12:56:21,699 - INFO - Enviando el prompt a Gemini...
+2025-03-25 12:56:45,426 - INFO - Procesando datos...
+2025-03-25 12:56:45,431 - INFO - Regresión lineal completada. R²: 0.0072361383013669345
+2025-03-25 12:56:45,431 - INFO - Generando gráfico 1: Rotura a lo largo del tiempo...
+2025-03-25 12:56:45,993 - INFO - Gráfico 1 convertido a base64.
+2025-03-25 12:56:45,993 - INFO - Generando gráfico 2: Evolución diaria del porcentaje de puntos...
+2025-03-25 12:56:46,313 - INFO - Gráfico 2 convertido a base64.
+2025-03-25 12:56:46,313 - INFO - Calculando el porcentaje de casos por turno...
+2025-03-25 12:56:46,313 - INFO - Total puntos: 7510, Puntos >240 bar: 118, R^2: 0.0072361383013669345, Porcentaje Turno Mañana: 39.83050847457627%, Porcentaje Turno Tarde: 25.423728813559322%, Porcentaje Turno Noche: 34.74576271186441%
+2025-03-25 12:56:46,313 - INFO - Respuesta de Gemini: ```json
+{
+  "resumen": "La presión evoluciona con fluctuaciones a lo largo del tiempo. Se observan dos periodos principales con valores de presión superiores a 240 bar. El primer periodo se presenta entre las 06:00 y las 14:00 del 2025-01-07, con un pico máximo de 246 bar. El segundo periodo ocurre el 2025-01-08, con picos máximos de 5598 bar y 247 bar.  Después del pico de 5598 bar, la presión vuelve a niveles inferiores a 240 bar.",
+  "causas": [
+    "**Fallo en el sistema de control de presión:** Un mal funcionamiento del sistema de control de presión podría permitir que la presión aumente significativamente más allá de los límites establecidos, llevando a picos anómalos, como el pico de 5598 bar, que es claramente un valor fuera de rango y representa una falla catastrófica en el sistema de medición o en el proceso mismo.  Los otros picos superiores a 240 bar podrían indicar una tendencia hacia este fallo.",
+    "**Sobrecarga del sistema:** Una demanda excesiva en el sistema podría sobrecargarlo, resultando en un aumento repentino de la presión. Esto podría ser debido a un aumento en la demanda o un problema en el flujo del proceso.",
+    "**Obstrucción en el sistema:** Una obstrucción en tuberías o válvulas podría restringir el flujo, elevando la presión en una sección del sistema. Esta obstrucción podría estar relacionada con acumulación de sedimentos, corrosión o un objeto extraño.",
+    "**Error en la medición:** Si bien el valor de 5598 bar es muy probablemente un error de medición, es importante investigar la posibilidad de errores sistemáticos que puedan estar afectando las lecturas.",
+    "**Cambios en las condiciones de operación:** Cambios en el proceso, como una variación en el flujo o la temperatura que no ha sido compensada adecuadamente, también puede llevar a picos de presión."
+  ],
+  "recomendaciones": [
+    "**Inspección y mantenimiento del sistema de control de presión:** Realizar una revisión completa del sistema, incluyendo calibración de sensores y verificación del correcto funcionamiento de las válvulas de seguridad y otros componentes. Este es crucial, especialmente después del pico de 5598 bar que sugiere una falla mayor.",
+    "**Análisis del flujo y la demanda:** Estudiar el patrón de demanda del sistema para identificar posibles sobrecargas y ajustar la capacidad del sistema si es necesario.",
+    "**Inspección regular de las tuberías y válvulas:** Inspeccionar regularmente las tuberías y válvulas en busca de obstrucciones, corrosión y otros problemas que puedan restringir el flujo.",
+    "**Implementar sistemas de alarma y seguridad adicionales:** Agregar sistemas de alarma para detectar sobrepresiones e implementar válvulas de seguridad redundantes para prevenir daños en caso de fallos.",
+    "**Investigar la causa raíz del pico de 5598 bar:** Este valor anómalo indica un problema grave que requiere atención inmediata. La investigación debe determinar si se trata de un error de medición o un fallo en el sistema, y debe involucrar a expertos en el campo.",
+    "**Análisis de datos más profundo:** Aplicar técnicas de análisis de series temporales más avanzadas para detectar patrones anómalos y tendencias con mayor precisión. Por ejemplo, métodos de aprendizaje automático podrían ser muy útiles."
+  ],
+  "relacion_temp": "Basado en los datos proporcionados, existe una posible correlación positiva entre la temperatura y la presión en algunos periodos, particularmente cuando la presión se mantiene relativamente alta (por ejemplo, entre 220-240 bar). Sin embargo, la correlación no es fuerte ni consistente en todos los datos. El valor anómalo de 5598 bar no muestra una correlación significativa con la temperatura, reforzando la hipótesis de una falla en el sistema de medición o control.  Se necesita un análisis estadístico más completo y más datos para determinar con certeza la existencia y la fuerza de esta relación."
+}
+```
+
+2025-03-25 12:57:41,563 - INFO - Iniciando el proceso...
+2025-03-25 12:57:41,563 - INFO - Configurando credenciales de Google Cloud...
+2025-03-25 12:57:41,647 - INFO - Ejecutando consulta en BigQuery...
+2025-03-25 12:57:47,816 - INFO - Datos obtenidos correctamente. Tamaño del DataFrame: (7510, 2)
+2025-03-25 12:57:48,927 - INFO -                          DATESTAMP  p_rotura_bar  Turno temperatura
+0 2025-01-03 16:30:51.666000+01:00         203.0  Tarde    95.43055
+1 2025-01-03 16:34:52.203000+01:00         208.0  Tarde   97.435025
+2 2025-01-03 16:37:37.539000+01:00         208.0  Tarde   98.812825
+3 2025-01-03 16:40:22.913000+01:00         202.0  Tarde  100.190942
+4 2025-01-03 16:42:53.168000+01:00         193.0  Tarde  101.443067
+2025-03-25 12:57:48,942 - INFO - 7510
+2025-03-25 12:57:48,942 - INFO - Generando prompt para Gemini...
+2025-03-25 12:57:48,943 - INFO - Convirtiendo el DataFrame a formato CSV...
+2025-03-25 12:57:49,023 - INFO - Contando tokens...
+2025-03-25 12:57:51,384 - INFO - Total de tokens en el DataFrame: 262227
+2025-03-25 12:57:51,384 - INFO - Prompt generado exitosamente con 473696 caracteres.
+2025-03-25 12:57:51,384 - INFO - Enviando el prompt a Gemini...
+2025-03-25 12:58:15,856 - INFO - Procesando datos...
+2025-03-25 12:58:15,863 - INFO - Regresión lineal completada. R²: 0.00016791068196975178
+2025-03-25 12:58:15,863 - INFO - Generando gráfico 1: Rotura a lo largo del tiempo...
+2025-03-25 12:58:16,455 - INFO - Gráfico 1 convertido a base64.
+2025-03-25 12:58:16,455 - INFO - Generando gráfico 2: Evolución diaria del porcentaje de puntos...
+2025-03-25 12:58:16,767 - INFO - Gráfico 2 convertido a base64.
+2025-03-25 12:58:16,767 - INFO - Calculando el porcentaje de casos por turno...
+2025-03-25 12:58:16,767 - INFO - Total puntos: 7510, Puntos >240 bar: 118, R^2: 0.00016791068196975178, Porcentaje Turno Mañana: 39.83050847457627%, Porcentaje Turno Tarde: 25.423728813559322%, Porcentaje Turno Noche: 34.74576271186441%
+2025-03-25 12:58:16,767 - INFO - Respuesta de Gemini: ```json
+{
+  "resumen": "La presión evoluciona en general con fluctuaciones alrededor de 200 bar, con picos que superan los 240 bar en varias ocasiones.  Estos picos se observan principalmente en los turnos de mañana, aunque también hay algunos en la tarde y noche. La duración de los picos varía, algunos son breves y otros se prolongan por varios minutos. Hay un dato anómalo de presión extremadamente alta (5598 bar).",
+  "causas": [
+    "El pico de presión extremadamente alta (5598 bar) indica una falla catastrófica en el sistema.  Se debe investigar inmediatamente la causa de esta anomalía.",
+    "Los demás picos de presión por encima de 240 bar podrían deberse a sobrecargas en el sistema, fallos parciales en componentes (válvulas, sensores, etc.),  fluctuaciones en la demanda o entrada de material inesperada.",
+    "Un aumento en la temperatura del núcleo, como se observa en algunos casos, podría contribuir a un aumento de la presión. Sin embargo, no se puede confirmar una relación directa sin un análisis más profundo.",
+    "Problemas con el control del sistema de presión, falta de mantenimiento o calibración incorrecta de los instrumentos de medición también pueden contribuir a estos picos."
+  ],
+  "recomendaciones": [
+    "Investigar y corregir inmediatamente la causa raíz del pico de presión de 5598 bar. Esto podría implicar una revisión completa del sistema y sus componentes.",
+    "Implementar un sistema de alarma más robusto que detecte y alerte sobre los picos de presión por encima de los 240 bar.",
+    "Revisar y mejorar el sistema de control de presión para que sea más preciso y robusto ante las fluctuaciones.",
+    "Realizar un programa de mantenimiento preventivo regular para evitar fallos en los componentes del sistema.",
+    "Analizar la relación entre temperatura y presión de manera más exhaustiva para identificar patrones predictivos.  Se debería considerar la incorporación de datos adicionales como la tasa de cambio de presión y temperatura.",
+    "Considerar la instalación de válvulas de seguridad o sistemas de alivio de presión para mitigar los picos de presión.",
+    "Revisar los procedimientos operativos para asegurar que se siguen correctamente y se eviten situaciones de sobrecarga del sistema."
+  ],
+  "relacion_temp": "Existe una posible correlación entre la temperatura del núcleo y la presión, pero se necesita un análisis estadístico más riguroso con más datos para establecer una relación causal. La presencia de puntos con temperaturas significativamente más bajas y presiones elevadas, junto con algunos puntos de presión elevada y temperatura normal, dificultan la confirmación de una relación directa simple."
+}
+```
+
