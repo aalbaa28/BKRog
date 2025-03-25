@@ -553,41 +553,71 @@ def analyze_champion(champion: str, df: pd.DataFrame) -> str:
     model = genai.GenerativeModel('gemini-1.5-flash')
     response = model.generate_content(prompt)
     return response.text
-
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # Check for champion name in input
+        # 1. Detección de preguntas sobre matchups (ej: "against Poppy")
+        enemy_matchup_phrases = ["against", "contra", "vs", "versus", "frente a"]
+        for phrase in enemy_matchup_phrases:
+            if phrase in user_input.lower():
+                parts = user_input.lower().split(phrase)
+                if len(parts) > 1:
+                    enemy_champ = parts[1].strip(" ?'\"").title()
+                    matchup_data = df[df['EnemyChampion'].str.strip().str.title() == enemy_champ]
+
+                    if not matchup_data.empty:
+                        our_champs = matchup_data['championName'].unique()
+                        win_rate = matchup_data['win'].mean() * 100
+
+                        # Generar CoT para matchups
+                        cot_steps = [
+                            "1. Identificar campeón enemigo mencionado en la pregunta.",
+                            f"2. Filtrar partidas donde EnemyChampion = '{enemy_champ}'.",
+                            "3. Calcular métricas clave:",
+                            f"   - Campeones jugados: {', '.join(our_champs)}",
+                            f"   - Win rate: {win_rate:.1f}%",
+                            f"   - KDA promedio: {matchup_data['kda'].mean():.2f}"
+                        ]
+
+                        response = (
+                            "🔍 **Razonamiento (CoT):**\n" + "\n".join(cot_steps) +
+                            "\n\n📊 **Resultado:**\n" +
+                            f"En {len(matchup_data)} partidas contra {enemy_champ}:\n" +
+                            f"- Campeones usados: {', '.join(our_champs)}\n" +
+                            f"- Win rate: {win_rate:.1f}%\n" +
+                            f"- Última partida: {matchup_data.iloc[-1]['gameName']}"
+                        )
+                        return response
+                    else:
+                        return f"No se encontraron partidas contra {enemy_champ}"
+
+        # 2. Análisis de campeones específicos (ej: "How is Yone performing?")
         champion = next(
             (name for name in df['championName'].str.strip().str.title().unique()
              if name.lower() in user_input.lower()),
             None
         )
-
         if champion:
-            return analyze_champion(champion, df)
+            return analyze_champion(champion, df)  # Esta función ahora también incluye CoT
 
-        # Active-Prompt for general questions
+        # 3. Active-Prompt + CoT para preguntas generales
         active_examples = get_active_examples(user_input)
 
         prompt = f"""
-        You're a professional LoL analyst. Use Active-Prompt reasoning:
+        Eres un analista de League of Legends. Sigue estos pasos:
 
-        Examples:
-        {"".join([f"Q: {ex['question']}\nCoT: {ex['cot']}\nA: {ex['answer']}\n\n" for ex in active_examples])}
+        **Ejemplos activos (CoT):**
+        {"".join([f"P: {ex['question']}\nR: {ex['cot']}\n-> {ex['answer']}\n\n" for ex in active_examples])}
 
-        Current Data:
-        - {len(df)} matches
-        - Columns: {list(df.columns)}
-        - Avg Gold/Min: {df['goldPerMinute'].mean():.0f}
+        **Datos disponibles:**
+        - Partidas: {len(df)}
+        - Columnas: {list(df.columns)}
+        - Win rate global: {df['win'].mean()*100:.1f}%
 
-        Question: "{user_input}"
+        **Pregunta:** "{user_input}"
 
-        Reasoning (think step-by-step in Spanish/English):
-        1. Identify relevant columns
-        2. Filter/calculate as needed
-        3. Format the answer clearly
-
-        Answer (max 150 words):
+        **Sigue este formato:**
+        1. 🔍 Razonamiento CoT (paso a paso):
+        2. 📊 Resultado (basado en datos):
         """
 
         model = genai.GenerativeModel('gemini-1.5-flash')
