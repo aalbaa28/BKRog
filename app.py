@@ -4,7 +4,8 @@ import os
 import google.generativeai as genai
 import pandas as pd
 import streamlit as st
-
+from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import SentenceTransformer
 # -------- CONFIGURAR IA
 
 
@@ -498,72 +499,64 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
 api_key = st.secrets["api_key"]
 # Configuration
 genai.configure(api_key=st.secrets["api_key"])
+encoder = SentenceTransformer('all-MiniLM-L6-v2')
+
+# Active-Prompt Example Bank (English/Spanish)
+active_prompt_examples = [
+    {
+        "question": "What's our win rate against Jayce in Mid?",
+        "cot": "1. Filter where Position='Mid' and EnemyChampion='Jayce'. 2. Calculate win rate (mean of win column).",
+        "answer": "Win rate vs Jayce in Mid: 50% (1 win, 1 loss)."
+    },
+    {
+        "question": "¿Cuál es el campeón con mayor KDA en ADC?",
+        "cot": "1. Filtrar donde Position='Adc'. 2. Calcular KDA promedio por campeón. 3. Ordenar descendente.",
+        "answer": "Kai'Sa tiene el mayor KDA (16.0) en ADC."
+    },
+    {
+        "question": "Show matches where we played against Poppy",
+        "cot": "1. Filter where EnemyChampion='Poppy'. 2. Return gameName and championName.",
+        "answer": "Matches vs Poppy: scrim | bkr g5 (played Rell)."
+    }
+]
+
+def get_active_examples(user_question, k=2):
+    question_embed = encoder.encode(user_question)
+    example_embeds = [encoder.encode(ex["question"]) for ex in active_prompt_examples]
+    sim_scores = cosine_similarity([question_embed], example_embeds)[0]
+    top_indices = np.argsort(sim_scores)[-k:][::-1]
+    return [active_prompt_examples[i] for i in top_indices]
+
 def analyze_champion(champion: str, df: pd.DataFrame) -> str:
-    # Clean and filter data
     champion = champion.strip().title()
     champ_data = df[df['championName'].str.strip().str.title() == champion]
 
     if champ_data.empty:
         return f"No data found for {champion}"
 
-    # Calculate core metrics
-    avg_stats = {
-        'kda': champ_data['kda'].mean(),
-        'gold': champ_data['goldPerMinute'].mean(),
-        'damage': champ_data['damagePerMinute'].mean(),
-        'damage_share': champ_data['teamDamagePercentage'].mean()
-    }
+    # Active-Prompt for champion analysis
+    active_examples = get_active_examples(f"How is {champion} performing?")
+    prompt = f"""
+    Champion Analysis Template:
+    {"".join([f"Q: {ex['question']}\nCoT: {ex['cot']}\nA: {ex['answer']}\n\n" for ex in active_examples])}
 
-    # Win rate by position
-    position_stats = champ_data.groupby('Position').agg({
-        'win': 'mean',
-        'kda': 'mean',
-        'goldPerMinute': 'mean'
-    }).sort_values('win', ascending=False)
+    Data for {champion}:
+    {champ_data[['Position', 'win', 'kda', 'goldPerMinute']].to_string()}
 
-    # Matchup analysis
-    if 'EnemyChampion' in champ_data.columns:
-        matchups = champ_data.groupby('EnemyChampion').agg({
-            'win': ['mean', 'count']
-        }).sort_values(('win', 'mean'), ascending=False)
-        best_matchup = matchups.index[0]
-        worst_matchup = matchups.index[-1]
+    Generate comprehensive analysis in bullet points:
+    1. Start with overall performance (win rate, matches played)
+    2. Break down by position if applicable
+    3. Include key metrics (KDA, gold, damage)
+    4. Highlight notable matchups
+    """
 
-    # Build report
-    report = [
-        f"📊 {champion} Performance ({len(champ_data)} matches):",
-        f"• Win Rate: {champ_data['win'].mean()*100:.1f}%",
-        f"• Avg KDA: {avg_stats['kda']:.2f}",
-        f"• Gold/Min: {avg_stats['gold']:.0f}",
-        f"• Damage/Min: {avg_stats['damage']:.0f}",
-        f"• Damage Share: {avg_stats['damage_share']:.1f}%",
-        "\n📍 Positions:"
-    ]
-
-    # Add position stats
-    for pos in position_stats.index:
-        report.append(
-            f"• {pos}: {position_stats.loc[pos, 'win']*100:.1f}% WR, "
-            f"{position_stats.loc[pos, 'kda']:.2f} KDA, "
-            f"{position_stats.loc[pos, 'goldPerMinute']:.0f} GPM"
-        )
-
-    # Add matchups if available
-    if 'EnemyChampion' in champ_data.columns:
-        report.extend([
-            "\n⚔️ Best Matchup:",
-            f"• vs {best_matchup}: {matchups.loc[best_matchup, ('win', 'mean')]*100:.1f}% WR "
-            f"({matchups.loc[best_matchup, ('win', 'count')]} games)",
-            "\n⚠️ Worst Matchup:",
-            f"• vs {worst_matchup}: {matchups.loc[worst_matchup, ('win', 'mean')]*100:.1f}% WR "
-            f"({matchups.loc[worst_matchup, ('win', 'count')]} games)"
-        ])
-
-    return "\n".join(report)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    response = model.generate_content(prompt)
+    return response.text
 
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # Check for champion-specific questions
+        # Check for champion name in input
         champion = next(
             (name for name in df['championName'].str.strip().str.title().unique()
              if name.lower() in user_input.lower()),
@@ -573,26 +566,28 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
         if champion:
             return analyze_champion(champion, df)
 
-        # General question analysis
-        prompt = f"""You're a LoL analyst. Answer concisely using this data:
+        # Active-Prompt for general questions
+        active_examples = get_active_examples(user_input)
+
+        prompt = f"""
+        You're a professional LoL analyst. Use Active-Prompt reasoning:
+
+        Examples:
+        {"".join([f"Q: {ex['question']}\nCoT: {ex['cot']}\nA: {ex['answer']}\n\n" for ex in active_examples])}
+
+        Current Data:
+        - {len(df)} matches
+        - Columns: {list(df.columns)}
+        - Avg Gold/Min: {df['goldPerMinute'].mean():.0f}
 
         Question: "{user_input}"
 
-        Available Columns:
-        {list(df.columns)}
+        Reasoning (think step-by-step in Spanish/English):
+        1. Identify relevant columns
+        2. Filter/calculate as needed
+        3. Format the answer clearly
 
-        Key Statistics:
-        • {len(df)} total matches
-        • {df['championName'].nunique()} unique champions
-        • Avg Gold/Min: {df['goldPerMinute'].mean():.0f}
-        • Avg Damage/Min: {df['damagePerMinute'].mean():.0f}
-
-        Rules:
-        1. Use exact column names
-        2. For champion questions: championName + Position
-        3. For matchups: championName vs EnemyChampion
-        4. For performance: goldPerMinute + damagePerMinute
-        5. Keep response under 100 words
+        Answer (max 150 words):
         """
 
         model = genai.GenerativeModel('gemini-1.5-flash')

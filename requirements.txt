@@ -3,4 +3,6 @@ transformers
 pandas
 numpy
 google-generativeai
+scikit-learn
+sentence-transformers
 
