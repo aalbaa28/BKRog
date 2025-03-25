@@ -520,7 +520,7 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
                 "positions": df['position'].value_counts().to_dict(),
                 "top_duos": df.groupby(['position', 'championname']).size().nlargest(5).to_dict()
             }
-        }
+        }}
 
         # 3. Generate autonomous analysis prompt
         prompt = f"""You're a professional LoL analyst. Use ALL available data to answer:
