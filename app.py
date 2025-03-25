@@ -555,8 +555,8 @@ def analyze_champion(champion: str, df: pd.DataFrame) -> str:
     return response.text
 def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
     try:
-        # 1. Detección de preguntas sobre matchups (ej: "against Poppy")
-        enemy_matchup_phrases = ["against", "contra", "vs", "versus", "frente a"]
+        # 1. Detect enemy matchup questions (e.g., "against Poppy")
+        enemy_matchup_phrases = ["against", "vs", "versus", "when facing"]
         for phrase in enemy_matchup_phrases:
             if phrase in user_input.lower():
                 parts = user_input.lower().split(phrase)
@@ -568,56 +568,56 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
                         our_champs = matchup_data['championName'].unique()
                         win_rate = matchup_data['win'].mean() * 100
 
-                        # Generar CoT para matchups
+                        # Generate CoT for matchups
                         cot_steps = [
-                            "1. Identificar campeón enemigo mencionado en la pregunta.",
-                            f"2. Filtrar partidas donde EnemyChampion = '{enemy_champ}'.",
-                            "3. Calcular métricas clave:",
-                            f"   - Campeones jugados: {', '.join(our_champs)}",
+                            "1. Identify enemy champion mentioned in the question.",
+                            f"2. Filter matches where EnemyChampion = '{enemy_champ}'.",
+                            "3. Calculate key metrics:",
+                            f"   - Champions played: {', '.join(our_champs)}",
                             f"   - Win rate: {win_rate:.1f}%",
-                            f"   - KDA promedio: {matchup_data['kda'].mean():.2f}"
+                            f"   - Average KDA: {matchup_data['kda'].mean():.2f}"
                         ]
 
                         response = (
-                            "🔍 **Razonamiento (CoT):**\n" + "\n".join(cot_steps) +
-                            "\n\n📊 **Resultado:**\n" +
-                            f"En {len(matchup_data)} partidas contra {enemy_champ}:\n" +
-                            f"- Campeones usados: {', '.join(our_champs)}\n" +
+                            "🔍 **Chain-of-Thought:**\n" + "\n".join(cot_steps) +
+                            "\n\n📊 **Result:**\n" +
+                            f"In {len(matchup_data)} matches against {enemy_champ}:\n" +
+                            f"- Champions used: {', '.join(our_champs)}\n" +
                             f"- Win rate: {win_rate:.1f}%\n" +
-                            f"- Última partida: {matchup_data.iloc[-1]['gameName']}"
+                            f"- Last match: {matchup_data.iloc[-1]['gameName']}"
                         )
                         return response
                     else:
-                        return f"No se encontraron partidas contra {enemy_champ}"
+                        return f"No matches found against {enemy_champ}"
 
-        # 2. Análisis de campeones específicos (ej: "How is Yone performing?")
+        # 2. Specific champion analysis (e.g., "How is Yone performing?")
         champion = next(
             (name for name in df['championName'].str.strip().str.title().unique()
              if name.lower() in user_input.lower()),
             None
         )
         if champion:
-            return analyze_champion(champion, df)  # Esta función ahora también incluye CoT
+            return analyze_champion(champion, df)  # This function now includes CoT
 
-        # 3. Active-Prompt + CoT para preguntas generales
+        # 3. Active-Prompt + CoT for general questions
         active_examples = get_active_examples(user_input)
 
         prompt = f"""
-        Eres un analista de League of Legends. Sigue estos pasos:
+        You're a League of Legends analyst. Follow these steps:
 
-        **Ejemplos activos (CoT):**
-        {"".join([f"P: {ex['question']}\nR: {ex['cot']}\n-> {ex['answer']}\n\n" for ex in active_examples])}
+        **Active Examples (CoT):**
+        {"".join([f"Q: {ex['question']}\nCoT: {ex['cot']}\nA: {ex['answer']}\n\n" for ex in active_examples])}
 
-        **Datos disponibles:**
-        - Partidas: {len(df)}
-        - Columnas: {list(df.columns)}
-        - Win rate global: {df['win'].mean()*100:.1f}%
+        **Available Data:**
+        - Matches: {len(df)}
+        - Columns: {list(df.columns)}
+        - Global win rate: {df['win'].mean()*100:.1f}%
 
-        **Pregunta:** "{user_input}"
+        **Question:** "{user_input}"
 
-        **Sigue este formato:**
-        1. 🔍 Razonamiento CoT (paso a paso):
-        2. 📊 Resultado (basado en datos):
+        **Response Format:**
+        1. 🔍 Chain-of-Thought (step-by-step reasoning):
+        2. 📊 Data-Driven Result:
         """
 
         model = genai.GenerativeModel('gemini-1.5-flash')
@@ -626,6 +626,53 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
 
     except Exception as e:
         return f"Error: {str(e)}"
+
+
+def analyze_champion(champion: str, df: pd.DataFrame) -> str:
+    champ_data = df[df['championName'].str.strip().str.title() == champion]
+
+    if champ_data.empty:
+        return f"No data found for {champion}"
+
+    # Generate CoT analysis
+    cot_steps = [
+        f"1. Filter matches where championName = '{champion}'",
+        "2. Calculate core performance metrics:",
+        f"   - Win rate: {champ_data['win'].mean()*100:.1f}% ({len(champ_data)} matches)",
+        f"   - Average KDA: {champ_data['kda'].mean():.2f}",
+        f"   - Gold/Min: {champ_data['goldPerMinute'].mean():.0f}",
+        "3. Analyze by position (if applicable):"
+    ]
+
+    # Add position breakdown
+    for pos in champ_data['Position'].unique():
+        pos_data = champ_data[champ_data['Position'] == pos]
+        cot_steps.append(
+            f"   - {pos}: {pos_data['win'].mean()*100:.1f}% WR, "
+            f"KDA {pos_data['kda'].mean():.2f}, "
+            f"{pos_data['goldPerMinute'].mean():.0f} GPM"
+        )
+
+    # Add matchups if available
+    if 'EnemyChampion' in champ_data.columns:
+        cot_steps.append("4. Key matchups:")
+        top_matchups = champ_data['EnemyChampion'].value_counts().head(3)
+        for enemy, count in top_matchups.items():
+            wr = champ_data[champ_data['EnemyChampion'] == enemy]['win'].mean()*100
+            cot_steps.append(f"   - vs {enemy}: {count} games, {wr:.1f}% WR")
+
+    # Build final response
+    response = (
+        "🔍 **Chain-of-Thought:**\n" + "\n".join(cot_steps) +
+        "\n\n📊 **Performance Summary:**\n" +
+        f"{champion} ({len(champ_data)} matches):\n" +
+        f"- Win Rate: {champ_data['win'].mean()*100:.1f}%\n" +
+        f"- Avg KDA: {champ_data['kda'].mean():.2f}\n" +
+        f"- Gold/Min: {champ_data['goldPerMinute'].mean():.0f}\n" +
+        f"- Positions: {', '.join(champ_data['Position'].unique())}"
+    )
+
+    return response
 
 
 
