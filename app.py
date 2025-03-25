@@ -535,13 +535,6 @@ def scrape_lolalytics_gm(champion, position):
     except Exception as e:
         return {"error": f"Error: {str(e)} | URL: {url}"}
 
-
-@st.cache_data(ttl=3600)
-def scrape_lolalytics_gm(champion, position):
-    """Extrae stats de Grandmaster+ desde LoLalytics"""
-    # (Implementación anterior que te pasé)
-    return gm_stats  # {'kda': [k,d,a], 'gpm': float, 'dpm': float, ...}
-
 # 2. Tu función de análisis (modificada)
 def analyze_champion(df, champion, position):
     """Usa TU función calculate_average_by_champion y compara con GM+"""
@@ -594,7 +587,10 @@ def analyze_champion(df, champion, position):
     
     return comparison, player_stats, analysis
 
-df = combined_df
+# 3. Interfaz Streamlit
+st.title("🏆 Analizador de Rendimiento vs Grandmaster+")
+
+df= combined_df
 st.session_state.df = df
 
 # Selectores
