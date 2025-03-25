@@ -516,6 +516,9 @@ def get_gemini_response(user_input: str, df: pd.DataFrame) -> str:
         return f"Hubo un error al procesar la solicitud: {e}"
 
 with tab8:
+    # Listar los modelos disponibles
+    models = genai.list_models()
+    st.write("Modelos disponibles:", models)
     st.title("Consulta a Gemini AI")
     user_input = st.text_area("Escribe tu consulta:")
 
