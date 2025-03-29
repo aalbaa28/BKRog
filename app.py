@@ -17,20 +17,15 @@ from bs4 import BeautifulSoup
 def load_json_data(folder):
     combined_data = []
     try:
-        # List all JSON files in the folder
         json_files = [file for file in os.listdir(folder) if file.endswith('.json')]
-
         for file in json_files:
             file_path = os.path.join(folder, file)
             with open(file_path, 'r', encoding='utf-8') as f:
                 json_data = json.load(f)
                 combined_data.append(json_data)
-        st.title("Scrim Stats")
-        st.success(f"Data loaded successfully from {folder}")
-        return combined_data
+        return combined_data  # Solo devuelve los datos, sin UI
     except Exception as e:
-        st.error(f"Error loading JSON files: {e}")
-        return None
+        return str(e) 
 
 def extract_player_data(participant):
     challenges = participant['challenges']
