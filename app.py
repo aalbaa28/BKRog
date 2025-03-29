@@ -56,7 +56,7 @@ def get_matchup_data(json_data):
     matchups = []
 
     # List of players we are interested in
-    players_of_interest = ["BKR Szygenda", "BKR Rhilech", "BKR OMON", "WD BOOSHI", "BKR Doss"]
+    players_of_interest = ["BKR Szygenda", "BKR Rhilech", "BKR OMON", "WD BOOSHI", "BKR Doss", "BKR BOOSHI"]
 
     # Iterate through all participants in the game
     for participant in json_data['participants']:
@@ -71,7 +71,7 @@ def get_matchup_data(json_data):
                 player_data['Position'] = 'Jgl'
             elif participant['riotIdGameName'] == "BKR OMON":
                 player_data['Position'] = 'Mid'
-            elif participant['riotIdGameName'] == "WD BOOSHI":
+            elif participant['riotIdGameName'] == "WD BOOSHI" or participant['riotIdGameName'] == "BKR BOOSHI":
                 player_data['Position'] = 'Adc'
             elif participant['riotIdGameName'] == "BKR Doss":
                 player_data['Position'] = 'Supp'
