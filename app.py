@@ -131,22 +131,18 @@ def calculate_average_by_champion(df, position=None):
 
     return avg_df
 import pandas as pd
+import pandas as pd
 
 # Function to generate player summary (win rate, average stats)
 def get_player_summary(df):
     player_summary = []
     
-    # Diccionario para unificar nombres (WD BOOSHI y BKR BOOSHI)
-    player_name_mapping = {
-        "WD BOOSHI": "BKR BOOSHI",
-        "BKR BOOSHI": "BKR BOOSHI"
-    }
-
+    # Lista de jugadores de interés
     players_of_interest = ["BKR Szygenda", "BKR Rhilech", "BKR OMON", "BKR BOOSHI", "BKR Doss"]
 
     for player in players_of_interest:
-        # Unificar nombres en el DataFrame
-        if player == "BOOSHI":
+        # Si el jugador es "BOOSHI", unificamos los dos nombres en uno
+        if player == "BKR BOOSHI":
             player_data = df[df['riotIdGameName'].isin(["WD BOOSHI", "BKR BOOSHI"])]
         else:
             player_data = df[df['riotIdGameName'] == player]
@@ -155,6 +151,32 @@ def get_player_summary(df):
             total_games = len(player_data)
             wins = player_data['win'].sum()
             win_rate = (wins / total_games) * 100  # Calculate win rate
+            avg_kda = player_data['kda'].mean()
+            avg_deaths = player_data['deaths'].mean()
+            avg_gold_per_minute = player_data['goldPerMinute'].mean()
+            avg_damage_per_minute = player_data['damagePerMinute'].mean()
+            avg_team_damage_percentage = player_data['teamDamagePercentage'].mean()
+            avg_control_wards = player_data['controlWards'].mean()
+
+            # Si el jugador es "BKR BOOSHI", lo mostramos como tal
+            player_summary.append({
+                'Player': "BKR BOOSHI",  # Aquí usamos "BKR BOOSHI" como el nombre final
+                'Total Games': total_games,
+                'Wins': wins,
+                'WinRate': win_rate,
+                'Avg KDA': avg_kda,
+                'Avg Deaths': avg_deaths,
+                'Avg Gold per Minute': avg_gold_per_minute,
+                'Avg Damage per Minute': avg_damage_per_minute,
+                'Avg Team Damage %': avg_team_damage_percentage,
+                'Avg Control Wards': avg_control_wards
+            })
+
+        elif player != "BKR BOOSHI":  # Solo agregamos los demás jugadores si no es BOOSHI
+            player_data = df[df['riotIdGameName'] == player]
+            total_games = len(player_data)
+            wins = player_data['win'].sum()
+            win_rate = (wins / total_games) * 100
             avg_kda = player_data['kda'].mean()
             avg_deaths = player_data['deaths'].mean()
             avg_gold_per_minute = player_data['goldPerMinute'].mean()
