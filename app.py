@@ -210,117 +210,117 @@ if json_data:
         end_date = st.date_input("End Date", pd.to_datetime('2025-04-30'), key="end_date")
 
          # Cambiar el color de la web según la selección
-    if side_filter == 'blue':
-        st.markdown(
-            """
-            <style>
-            .stApp {
+        if side_filter == 'blue':
+            st.markdown(
+                """
+                <style>
+                .stApp {
 
-            }
-            h1, h2, h3, h4, h5, h6, strong {
-                color: #0288D1;  /* Texto en azul oscuro para títulos y negritas */
-            }
-            .stButton>button {
-                background-color: #0288D1;  /* Botón azul */
-                color: white;  /* Texto del botón en blanco */
-            }
-            /* Estilos para las tabs */
-            .stTabs [role="tab"] {
-                background-color: #E0F7FA;  /* Fondo de las tabs (azul claro) */
-                color: #01579B;  /* Color del texto de las tabs (azul oscuro) */
-                font-size: 18px;  /* Tamaño de la letra más grande */
-                font-family: 'Arial', sans-serif;  /* Tipografía bonita */
-                font-weight: bold;  /* Texto en negrita */
-                padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
-                border-radius: 10px;  /* Bordes redondeados */
-            }
-            .stTabs [role="tab"][aria-selected="true"] {
-                background-color: #0288D1;  /* Fondo de la tab seleccionada (azul) */
-                color: white;  /* Color del texto de la tab seleccionada (blanco) */
-                font-size: 18px;  /* Tamaño de la letra más grande */
-                font-family: 'Arial', sans-serif;  /* Tipografía bonita */
-                font-weight: bold;  /* Texto en negrita */
-                padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
-                border-radius: 10px;  /* Bordes redondeados */
-            }
-            </style>
-            """, unsafe_allow_html=True
-        )
-    elif side_filter == 'red':
-        st.markdown(
-            """
-            <style>
-            .stApp {
+                }
+                h1, h2, h3, h4, h5, h6, strong {
+                    color: #0288D1;  /* Texto en azul oscuro para títulos y negritas */
+                }
+                .stButton>button {
+                    background-color: #0288D1;  /* Botón azul */
+                    color: white;  /* Texto del botón en blanco */
+                }
+                /* Estilos para las tabs */
+                .stTabs [role="tab"] {
+                    background-color: #E0F7FA;  /* Fondo de las tabs (azul claro) */
+                    color: #01579B;  /* Color del texto de las tabs (azul oscuro) */
+                    font-size: 18px;  /* Tamaño de la letra más grande */
+                    font-family: 'Arial', sans-serif;  /* Tipografía bonita */
+                    font-weight: bold;  /* Texto en negrita */
+                    padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
+                    border-radius: 10px;  /* Bordes redondeados */
+                }
+                .stTabs [role="tab"][aria-selected="true"] {
+                    background-color: #0288D1;  /* Fondo de la tab seleccionada (azul) */
+                    color: white;  /* Color del texto de la tab seleccionada (blanco) */
+                    font-size: 18px;  /* Tamaño de la letra más grande */
+                    font-family: 'Arial', sans-serif;  /* Tipografía bonita */
+                    font-weight: bold;  /* Texto en negrita */
+                    padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
+                    border-radius: 10px;  /* Bordes redondeados */
+                }
+                </style>
+                """, unsafe_allow_html=True
+            )
+        elif side_filter == 'red':
+            st.markdown(
+                """
+                <style>
+                .stApp {
 
-            }
-            h1, h2, h3, h4, h5, h6, strong {
-                color: #C62828;  /* Texto en rojo oscuro para títulos y negritas */
-            }
-            .stButton>button {
-                background-color: #C62828;  /* Botón rojo */
-                color: white;  /* Texto del botón en blanco */
-            }
-            /* Estilos para las tabs */
-            .stTabs [role="tab"] {
-                background-color: #FFEBEE;  /* Fondo de las tabs (rojo claro) */
-                color: #B71C1C;  /* Color del texto de las tabs (rojo oscuro) */
-                font-size: 18px;  /* Tamaño de la letra más grande */
-                font-family: 'Arial', sans-serif;  /* Tipografía bonita */
-                font-weight: bold;  /* Texto en negrita */
-                padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
-                border-radius: 10px;  /* Bordes redondeados */
-            }
-            .stTabs [role="tab"][aria-selected="true"] {
-                background-color: #C62828;  /* Fondo de la tab seleccionada (rojo) */
-                color: white;  /* Color del texto de la tab seleccionada (blanco) */
-                font-size: 18px;  /* Tamaño de la letra más grande */
-                font-family: 'Arial', sans-serif;  /* Tipografía bonita */
-                font-weight: bold;  /* Texto en negrita */
-                padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
-                border-radius: 10px;  /* Bordes redondeados */
-            }
-            </style>
-            """, unsafe_allow_html=True
-        )
-    else:
-        st.markdown(
-            """
-            <style>
-            .stApp {
+                }
+                h1, h2, h3, h4, h5, h6, strong {
+                    color: #C62828;  /* Texto en rojo oscuro para títulos y negritas */
+                }
+                .stButton>button {
+                    background-color: #C62828;  /* Botón rojo */
+                    color: white;  /* Texto del botón en blanco */
+                }
+                /* Estilos para las tabs */
+                .stTabs [role="tab"] {
+                    background-color: #FFEBEE;  /* Fondo de las tabs (rojo claro) */
+                    color: #B71C1C;  /* Color del texto de las tabs (rojo oscuro) */
+                    font-size: 18px;  /* Tamaño de la letra más grande */
+                    font-family: 'Arial', sans-serif;  /* Tipografía bonita */
+                    font-weight: bold;  /* Texto en negrita */
+                    padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
+                    border-radius: 10px;  /* Bordes redondeados */
+                }
+                .stTabs [role="tab"][aria-selected="true"] {
+                    background-color: #C62828;  /* Fondo de la tab seleccionada (rojo) */
+                    color: white;  /* Color del texto de la tab seleccionada (blanco) */
+                    font-size: 18px;  /* Tamaño de la letra más grande */
+                    font-family: 'Arial', sans-serif;  /* Tipografía bonita */
+                    font-weight: bold;  /* Texto en negrita */
+                    padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
+                    border-radius: 10px;  /* Bordes redondeados */
+                }
+                </style>
+                """, unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                """
+                <style>
+                .stApp {
 
-            }
-            h1, h2, h3, h4, h5, h6, strong {
-                color: black;  /* Texto en negro para títulos y negritas */
-            }
-            .stButton>button {
-                background-color: #2c3e50;  /* Botón gris oscuro */
-                color: white;  /* Texto del botón en blanco */
-            }
-            /* Estilos para las tabs */
-            .stTabs [role="tab"] {
-                background-color: #f0f0f0;  /* Fondo de las tabs (gris claro) */
-                color: #2c3e50;  /* Color del texto de las tabs (gris oscuro) */
-                font-size: 18px;  /* Tamaño de la letra más grande */
-                font-family: 'Arial', sans-serif;  /* Tipografía bonita */
-                font-weight: bold;  /* Texto en negrita */
-                padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
-                border-radius: 10px;  /* Bordes redondeados */
-            }
-            .stTabs [role="tab"][aria-selected="true"] {
-                background-color: #2c3e50;  /* Fondo de la tab seleccionada (gris oscuro) */
-                color: white;  /* Color del texto de la tab seleccionada (blanco) */
-                font-size: 18px;  /* Tamaño de la letra más grande */
-                font-family: 'Arial', sans-serif;  /* Tipografía bonita */
-                font-weight: bold;  /* Texto en negrita */
-                padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
-                border-radius: 10px;  /* Bordes redondeados */
-            }
-            </style>
-            """, unsafe_allow_html=True
-        )
+                }
+                h1, h2, h3, h4, h5, h6, strong {
+                    color: black;  /* Texto en negro para títulos y negritas */
+                }
+                .stButton>button {
+                    background-color: #2c3e50;  /* Botón gris oscuro */
+                    color: white;  /* Texto del botón en blanco */
+                }
+                /* Estilos para las tabs */
+                .stTabs [role="tab"] {
+                    background-color: #f0f0f0;  /* Fondo de las tabs (gris claro) */
+                    color: #2c3e50;  /* Color del texto de las tabs (gris oscuro) */
+                    font-size: 18px;  /* Tamaño de la letra más grande */
+                    font-family: 'Arial', sans-serif;  /* Tipografía bonita */
+                    font-weight: bold;  /* Texto en negrita */
+                    padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
+                    border-radius: 10px;  /* Bordes redondeados */
+                }
+                .stTabs [role="tab"][aria-selected="true"] {
+                    background-color: #2c3e50;  /* Fondo de la tab seleccionada (gris oscuro) */
+                    color: white;  /* Color del texto de la tab seleccionada (blanco) */
+                    font-size: 18px;  /* Tamaño de la letra más grande */
+                    font-family: 'Arial', sans-serif;  /* Tipografía bonita */
+                    font-weight: bold;  /* Texto en negrita */
+                    padding: 10px 20px;  /* Espaciado interno para que se vea mejor */
+                    border-radius: 10px;  /* Bordes redondeados */
+                }
+                </style>
+                """, unsafe_allow_html=True
+            )
 
-        if st.button("Apply Filters"):
-            st.session_state.filters_applied = True  # Marcar que los filtros deben aplicarse
+            if st.button("Apply Filters"):
+                st.session_state.filters_applied = True  # Marcar que los filtros deben aplicarse
 
     # Solo aplicar filtros si el botón ha sido presionado
     if st.session_state.filters_applied:
