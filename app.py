@@ -454,14 +454,14 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
         # Show the player summary table below the details
     st.subheader("Player Summary Table")
 
-    # Lista de todas las columnas disponibles
     all_columns = player_summary_df.columns.tolist()
 
     # Selector para elegir qué columnas mostrar
     selected_columns = st.multiselect("Select columns to display:", all_columns, default=all_columns)
 
-    # Mostrar la tabla con solo las columnas seleccionadas
-    st.data_editor(player_summary_df[selected_columns])
+    # Botón para actualizar la tabla
+    if st.button("Show Data"):
+        st.data_editor(player_summary_df[selected_columns])
 
 
         # Function to calculate daily winrate (percentage of wins per day)
