@@ -421,6 +421,18 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
     # Get player summary DataFrame
     player_summary_df = get_player_summary(combined_df)
 
+        # Show the player summary table below the details
+    st.subheader("Player Summary Table")
+
+    all_columns = player_summary_df.columns.tolist()
+
+    # Selector para elegir qué columnas mostrar
+    selected_columns = st.multiselect("Select columns to display:", all_columns, default=all_columns)
+
+    # Botón para actualizar la tabla
+    if st.button("Show Data"):
+        st.data_editor(player_summary_df[selected_columns])
+
     # Loop through each player to display a more attractive summary
     for index, row in player_summary_df.iterrows():
         # Create two columns to display the player's stats and the win rate
@@ -451,17 +463,7 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
             winrate_color = "green" if row['WinRate'] >= 50 else "red"
             st.markdown(f"<span style='color:{winrate_color}; font-size: 25px;'>🔼</span>", unsafe_allow_html=True)  # You can use a simple icon or image
 
-        # Show the player summary table below the details
-    st.subheader("Player Summary Table")
-
-    all_columns = player_summary_df.columns.tolist()
-
-    # Selector para elegir qué columnas mostrar
-    selected_columns = st.multiselect("Select columns to display:", all_columns, default=all_columns)
-
-    # Botón para actualizar la tabla
-    if st.button("Show Data"):
-        st.data_editor(player_summary_df[selected_columns])
+    
 
 
         # Function to calculate daily winrate (percentage of wins per day)
