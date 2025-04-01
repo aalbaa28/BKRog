@@ -43,7 +43,7 @@ def extract_player_data(participant):
         'damagePerMinute': round(challenges['damagePerMinute'], 2),
         'teamDamagePercentage': round(challenges['teamDamagePercentage'], 2),
         'side': 'blue' if participant['teamId'] == 100 else 'red',  # Determine side based on teamId
-        'controlWard': challenges['controlWardsPlaced']
+        'controlWards': challenges['controlWardsPlaced']
     }
     return data
 
