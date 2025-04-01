@@ -307,43 +307,38 @@ if json_data:
             """, unsafe_allow_html=True
         )
 
-    # Apply side filter
-    if side_filter != 'All':
-        combined_df = combined_df[combined_df['side'] == side_filter]
+    # Inicializar session_state si no existe
+    if "filters_applied" not in st.session_state:
+        st.session_state.filters_applied = False
 
-   # Get the list of unique champions
-    champion_list = combined_df['championName'].unique().tolist()
-    champion_list.sort()  # Sort alphabetically
-    champion_list.insert(0, "All")  # Add "All" option to disable the filter
+    # Sidebar filters sin recargar la página
+    with st.sidebar:
+        side_filter = st.selectbox("Filter by side", ['All', 'blue', 'red'], key="side_filter")
+        champion_list = sorted(combined_df['championName'].unique().tolist())
+        champion_list.insert(0, "All")
+        champion_filter = st.selectbox("Filter by champion", champion_list, key="champion_filter")
+        start_date = st.date_input("Start Date", pd.to_datetime('2025-03-01'), key="start_date")
+        end_date = st.date_input("End Date", pd.to_datetime('2025-04-30'), key="end_date")
 
-    # Filter by champion
-    champion_filter = st.sidebar.selectbox("Filter by champion", champion_list)
+        if st.button("Apply Filters"):
+            st.session_state.filters_applied = True  # Marcar que los filtros deben aplicarse
 
-    # Date filters
-    start_date = st.sidebar.date_input("Start Date", pd.to_datetime('2025-03-01'))  # Default start date
-    end_date = st.sidebar.date_input("End Date", pd.to_datetime('2025-04-30'))
+    # Solo aplicar filtros si el botón ha sido presionado
+    if st.session_state.filters_applied:
+        start_date = pd.to_datetime(st.session_state.start_date)
+        end_date = pd.to_datetime(st.session_state.end_date).replace(hour=23, minute=59, second=59)
 
-    # Convertir las fechas seleccionadas a formato datetime (asegurarse de incluir la hora en end_date)
-    start_date = pd.to_datetime(start_date)
-    end_date = pd.to_datetime(end_date).replace(hour=23, minute=59, second=59)  # Aseguramos que sea hasta el final del día
+        if st.session_state.side_filter != 'All':
+            combined_df = combined_df[combined_df['side'] == st.session_state.side_filter]
 
-    if st.sidebar.button("Apply Filters"):
-        # Convert dates to datetime
-        start_date = pd.to_datetime(start_date)
-        end_date = pd.to_datetime(end_date).replace(hour=23, minute=59, second=59)  # Ensure end date is until the end of the day
-
-        # Apply the filters to the DataFrame
-        if side_filter != 'All':
-            combined_df = combined_df[combined_df['side'] == side_filter]
-
-        if champion_filter != "All":
-            combined_df = combined_df[combined_df['championName'] == champion_filter]
+        if st.session_state.champion_filter != "All":
+            combined_df = combined_df[combined_df['championName'] == st.session_state.champion_filter]
 
         if 'Date' in combined_df.columns:
             combined_df = combined_df[(combined_df['Date'] >= start_date) & (combined_df['Date'] <= end_date)]
 
-        # Display the filtered DataFrame
-        st.dataframe(combined_df)
+    # Mostrar DataFrame solo si se aplicaron los filtros
+    st.dataframe(combined_df)
 
 
     # Create tabs for each position
