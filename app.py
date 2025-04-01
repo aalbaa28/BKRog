@@ -461,17 +461,8 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
     selected_columns = st.multiselect("Select columns to display:", all_columns, default=all_columns)
 
     # Mostrar la tabla con solo las columnas seleccionadas
-    st.dataframe(
-        player_summary_df[selected_columns].style.format({
-            'WinRate': "{:.2f}%",
-            'Avg KDA': "{:.2f}",
-            'Avg Deaths': "{:.2f}",
-            'Avg Gold per Minute': "{:.2f}",
-            'Avg Damage per Minute': "{:.2f}",
-            'Avg Team Damage %': "{:.2f}%",
-            'Avg Control Wards': "{:.2f}"
-        })
-    )
+    st.data_editor(player_summary_df[selected_columns])
+
 
         # Function to calculate daily winrate (percentage of wins per day)
     def calculate_daily_winrate(df):
