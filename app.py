@@ -192,6 +192,11 @@ if json_data:
         combined_df = pd.concat([combined_df, df], ignore_index=True)
         combined_df = combined_df.sort_values(by='Date', ascending=False)
 
+        # Inicializar session_state si no existe
+        if "filters_applied" not in st.session_state:
+            st.session_state.filters_applied = False
+            st.session_state.filtered_df = combined_df  # Para evitar cálculos innecesarios
+
         # Filter by side (blue or red)
 
    
