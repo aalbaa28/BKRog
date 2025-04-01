@@ -130,15 +130,26 @@ def calculate_average_by_champion(df, position=None):
     avg_df = avg_df.sort_values(by='side', ascending=False)
 
     return avg_df
+import pandas as pd
 
 # Function to generate player summary (win rate, average stats)
 def get_player_summary(df):
     player_summary = []
+    
+    # Diccionario para unificar nombres (WD BOOSHI y BKR BOOSHI)
+    player_name_mapping = {
+        "WD BOOSHI": "BOOSHI",
+        "BKR BOOSHI": "BOOSHI"
+    }
 
-    players_of_interest = ["BKR Szygenda", "BKR Rhilech", "BKR OMON", "WD BOOSHI", "BKR Doss"]
+    players_of_interest = ["BKR Szygenda", "BKR Rhilech", "BKR OMON", "BOOSHI", "BKR Doss"]
 
     for player in players_of_interest:
-        player_data = df[df['riotIdGameName'] == player]
+        # Unificar nombres en el DataFrame
+        if player == "BOOSHI":
+            player_data = df[df['riotIdGameName'].isin(["WD BOOSHI", "BKR BOOSHI"])]
+        else:
+            player_data = df[df['riotIdGameName'] == player]
 
         if not player_data.empty:
             total_games = len(player_data)
@@ -149,7 +160,7 @@ def get_player_summary(df):
             avg_gold_per_minute = player_data['goldPerMinute'].mean()
             avg_damage_per_minute = player_data['damagePerMinute'].mean()
             avg_team_damage_percentage = player_data['teamDamagePercentage'].mean()
-            avg_control_wards=player_data['controlWards'].mean()
+            avg_control_wards = player_data['controlWards'].mean()
 
             player_summary.append({
                 'Player': player,
@@ -165,6 +176,7 @@ def get_player_summary(df):
             })
 
     return pd.DataFrame(player_summary)
+
 
 # Load data from the folder
 json_folder = json_folder = "March 18"  # Ahora buscará dentro del repo en Streamlit Cloud
