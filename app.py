@@ -449,17 +449,27 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
             winrate_color = "green" if row['WinRate'] >= 50 else "red"
             st.markdown(f"<span style='color:{winrate_color}; font-size: 25px;'>🔼</span>", unsafe_allow_html=True)  # You can use a simple icon or image
 
-    # Show the player summary table below the details
+        # Show the player summary table below the details
     st.subheader("Player Summary Table")
-    st.dataframe(player_summary_df.style.format({
-        'WinRate': "{:.2f}%",
-        'Avg KDA': "{:.2f}",
-        'Avg Deaths': "{:.2f}",
-        'Avg Gold per Minute': "{:.2f}",
-        'Avg Damage per Minute': "{:.2f}",
-        'Avg Team Damage %': "{:.2f}%",
-        'Avg Control Wards': "{:.2f}"
-    }))
+
+    # Lista de todas las columnas disponibles
+    all_columns = player_summary_df.columns.tolist()
+
+    # Selector para elegir qué columnas mostrar
+    selected_columns = st.multiselect("Select columns to display:", all_columns, default=all_columns)
+
+    # Mostrar la tabla con solo las columnas seleccionadas
+    st.dataframe(
+        player_summary_df[selected_columns].style.format({
+            'WinRate': "{:.2f}%",
+            'Avg KDA': "{:.2f}",
+            'Avg Deaths': "{:.2f}",
+            'Avg Gold per Minute': "{:.2f}",
+            'Avg Damage per Minute': "{:.2f}",
+            'Avg Team Damage %': "{:.2f}%",
+            'Avg Control Wards': "{:.2f}"
+        })
+    )
 
         # Function to calculate daily winrate (percentage of wins per day)
     def calculate_daily_winrate(df):
