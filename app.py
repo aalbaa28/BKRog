@@ -450,36 +450,6 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
     if st.button("Show Data"):
         st.data_editor(player_summary_df[selected_columns])
 
-    # Loop through each player to display a more attractive summary
-    for index, row in player_summary_df.iterrows():
-        # Create two columns to display the player's stats and the win rate
-        col1, col2 = st.columns([2, 1])  # Adjust the column widths as needed
-
-        with col1:
-            # Estilo bonito para mostrar el nombre del jugador
-            st.markdown(
-                f"<h3 style='color:#7f8c8d; font-weight:bold;'>{row['Player']}</h3>",
-                unsafe_allow_html=True
-            )
-
-            st.write(f"Total Games: {row['Total Games']}")
-            st.write(f"Wins: {row['Wins']}")
-
-            winrate_color = "green" if row['WinRate'] >= 50 else "red"
-            st.markdown(f"<p style='color:{winrate_color};'><b>Winrate</b>: {row['WinRate']:.2f}%</p>", unsafe_allow_html=True)
-
-            st.write(f"Avg KDA: {row['Avg KDA']:.2f}")
-            st.write(f"Avg Deaths: {row['Avg Deaths']:.2f}")
-            st.write(f"Avg Gold per Minute: {row['Avg Gold per Minute']:.2f}")
-            st.write(f"Avg Damage per Minute: {row['Avg Damage per Minute']:.2f}")
-            st.write(f"Avg Team Damage %: {row['Avg Team Damage %']*100:.2f}%")
-            st.write(f"Avg Control Wards Placed: {row['Avg Control Wards']:.2f}")
-
-        with col2:
-            # You can add a small image, chart or any additional info for each player
-            winrate_color = "green" if row['WinRate'] >= 50 else "red"
-            st.markdown(f"<span style='color:{winrate_color}; font-size: 25px;'>🔼</span>", unsafe_allow_html=True)  # You can use a simple icon or image
-
     
 
 
