@@ -138,11 +138,11 @@ def get_player_summary(df):
     
     # Diccionario para unificar nombres (WD BOOSHI y BKR BOOSHI)
     player_name_mapping = {
-        "WD BOOSHI": "BOOSHI",
-        "BKR BOOSHI": "BOOSHI"
+        "WD BOOSHI": "BKR BOOSHI",
+        "BKR BOOSHI": "BKR BOOSHI"
     }
 
-    players_of_interest = ["BKR Szygenda", "BKR Rhilech", "BKR OMON", "BOOSHI", "BKR Doss"]
+    players_of_interest = ["BKR Szygenda", "BKR Rhilech", "BKR OMON", "BKR BOOSHI", "BKR Doss"]
 
     for player in players_of_interest:
         # Unificar nombres en el DataFrame
