@@ -311,7 +311,7 @@ if json_data:
     if side_filter != 'All':
         combined_df = combined_df[combined_df['side'] == side_filter]
 
-    # Get the list of unique champions
+   # Get the list of unique champions
     champion_list = combined_df['championName'].unique().tolist()
     champion_list.sort()  # Sort alphabetically
     champion_list.insert(0, "All")  # Add "All" option to disable the filter
@@ -319,13 +319,9 @@ if json_data:
     # Filter by champion
     champion_filter = st.sidebar.selectbox("Filter by champion", champion_list)
 
-    # Apply champion filter
-    if champion_filter != "All":
-        combined_df = combined_df[combined_df['championName'] == champion_filter]
-
-        # Add the date filters in the sidebar
+    # Date filters
     start_date = st.sidebar.date_input("Start Date", pd.to_datetime('2025-03-01'))  # Default start date
-    end_date = st.sidebar.date_input("End Date", pd.to_datetime('2025-04-30'))  # Default end date
+    end_date = st.sidebar.date_input("End Date", pd.to_datetime('2025-04-30'))
 
     # Convertir las fechas seleccionadas a formato datetime (asegurarse de incluir la hora en end_date)
     start_date = pd.to_datetime(start_date)
