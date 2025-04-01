@@ -43,6 +43,7 @@ def extract_player_data(participant):
         'damagePerMinute': round(challenges['damagePerMinute'], 2),
         'teamDamagePercentage': round(challenges['teamDamagePercentage'], 2),
         'side': 'blue' if participant['teamId'] == 100 else 'red',  # Determine side based on teamId
+        'controlWard': challenges['controlWardsPlaced']
     }
     return data
 
@@ -116,7 +117,8 @@ def calculate_average_by_champion(df, position=None):
         'teamDamagePercentage': 'mean',
         'side': 'count',  # Count number of appearances
         'championImage': 'first',  # Take the first image for the champion (it should be the same for each)
-        'win': 'sum'  # Sum of wins to calculate WR
+        'win': 'sum',  # Sum of wins to calculate WR
+        'controlWards': 'mean'
     }).reset_index()
 
     # Calculate Win Rate (WR) as (wins / total games) * 100
@@ -145,6 +147,7 @@ def get_player_summary(df):
             avg_gold_per_minute = player_data['goldPerMinute'].mean()
             avg_damage_per_minute = player_data['damagePerMinute'].mean()
             avg_team_damage_percentage = player_data['teamDamagePercentage'].mean()
+            avg_control_wards=player_data['controlWards'].mean()
 
             player_summary.append({
                 'Player': player,
@@ -155,7 +158,8 @@ def get_player_summary(df):
                 'Avg Deaths': avg_deaths,
                 'Avg Gold per Minute': avg_gold_per_minute,
                 'Avg Damage per Minute': avg_damage_per_minute,
-                'Avg Team Damage %': avg_team_damage_percentage
+                'Avg Team Damage %': avg_team_damage_percentage,
+                'Avg Control Wards': avg_control_wards
             })
 
     return pd.DataFrame(player_summary)
@@ -181,10 +185,6 @@ if json_data:
     side_filter = st.sidebar.selectbox("Filter by side", ['All', 'blue', 'red'])
 
     # Cambiar el color de la web según la selección
-    # Cambiar el color de la web según la selección
-    # Cambiar el color de la web según la selección
-    # Cambiar el color de la web según la selección
-   # Cambiar el color de la web según la selección
     if side_filter == 'blue':
         st.markdown(
             """
@@ -356,6 +356,7 @@ if json_data:
                     st.write(f"KDA: {row['kda']} | Deaths: {row['deaths']}")
                     st.write(f"Gold per minute: {row['goldPerMinute']} | Damage per minute: {row['damagePerMinute']}")
                     st.write(f"Team damage percentage: {row['teamDamagePercentage']*100:.2f}% | Side: {row['side']}")
+                    st.write(f"Control Wards placed: {row['controlWards']}")
                     st.write("---")
         else:
             st.write(f"No data available for {position}.")
@@ -408,6 +409,7 @@ if json_data:
                 st.write(f"Gold per Minute: {row['goldPerMinute']:.2f}")
                 st.write(f"Damage per Minute: {row['damagePerMinute']:.2f}")
                 st.write(f"Team Damage Percentage: {row['teamDamagePercentage']*100:.2f}%")
+                st.write(f"Control Wards Placed: {row['controlWards']:.2f}")
 
             st.write("---")
 
@@ -440,6 +442,7 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
             st.write(f"Avg Gold per Minute: {row['Avg Gold per Minute']:.2f}")
             st.write(f"Avg Damage per Minute: {row['Avg Damage per Minute']:.2f}")
             st.write(f"Avg Team Damage %: {row['Avg Team Damage %']*100:.2f}%")
+            st.write(f"Avg Control Wards Placed: {row['Avg Control Wards']:.2f}")
 
         with col2:
             # You can add a small image, chart or any additional info for each player
@@ -454,7 +457,8 @@ with tab7:  # Assuming this is the last tab. You can rename it if needed.
         'Avg Deaths': "{:.2f}",
         'Avg Gold per Minute': "{:.2f}",
         'Avg Damage per Minute': "{:.2f}",
-        'Avg Team Damage %': "{:.2f}%"
+        'Avg Team Damage %': "{:.2f}%",
+        'Avg Control Wards': "{:.2f}"
     }))
 
         # Function to calculate daily winrate (percentage of wins per day)
