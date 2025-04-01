@@ -312,7 +312,7 @@ if json_data:
 
         # Add the date filters in the sidebar
     start_date = st.sidebar.date_input("Start Date", pd.to_datetime('2025-03-01'))  # Default start date
-    end_date = st.sidebar.date_input("End Date", pd.to_datetime('2025-04-31'))  # Default end date
+    end_date = st.sidebar.date_input("End Date", pd.to_datetime('2025-04-30'))  # Default end date
 
     # Convertir las fechas seleccionadas a formato datetime (asegurarse de incluir la hora en end_date)
     start_date = pd.to_datetime(start_date)
