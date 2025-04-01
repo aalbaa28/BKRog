@@ -130,10 +130,6 @@ def calculate_average_by_champion(df, position=None):
     avg_df = avg_df.sort_values(by='side', ascending=False)
 
     return avg_df
-import pandas as pd
-import pandas as pd
-
-import pandas as pd
 
 # Function to generate player summary (win rate, average stats)
 def get_player_summary(df):
@@ -335,9 +331,23 @@ if json_data:
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date).replace(hour=23, minute=59, second=59)  # Aseguramos que sea hasta el final del día
 
-    # Filtrar el DataFrame por el rango de fechas
-    if 'Date' in combined_df.columns:
-        combined_df = combined_df[(combined_df['Date'] >= start_date) & (combined_df['Date'] <= end_date)]
+    if st.sidebar.button("Apply Filters"):
+        # Convert dates to datetime
+        start_date = pd.to_datetime(start_date)
+        end_date = pd.to_datetime(end_date).replace(hour=23, minute=59, second=59)  # Ensure end date is until the end of the day
+
+        # Apply the filters to the DataFrame
+        if side_filter != 'All':
+            combined_df = combined_df[combined_df['side'] == side_filter]
+
+        if champion_filter != "All":
+            combined_df = combined_df[combined_df['championName'] == champion_filter]
+
+        if 'Date' in combined_df.columns:
+            combined_df = combined_df[(combined_df['Date'] >= start_date) & (combined_df['Date'] <= end_date)]
+
+        # Display the filtered DataFrame
+        st.dataframe(combined_df)
 
 
     # Create tabs for each position
