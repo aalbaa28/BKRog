@@ -10,6 +10,8 @@ from bs4 import BeautifulSoup
 
 # -------- CONFIGURAR IA
 
+if st.button("Recargar datos JSON"):
+    st.cache_data.clear()
 
 # Inicializar PandasAI con el modelo
 
