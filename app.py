@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 # -------- CONFIGURAR IA
 
 
+
 if st.button("Recargar datos JSON"):
     st.cache_data.clear()
 
@@ -203,49 +204,7 @@ if json_data:
 
         # Filter by side (blue or red)
 
-        
-    # Función para calcular winrate por side (debe ir antes de su uso)
-    def calculate_winrate(players_data):
-        """
-        Calcula el winrate global por lado (blue/red) para todos los jugadores.
-        Args:
-            players_data: Lista de diccionarios con datos de partidas (debe contener 'side' y 'win')
-        Returns:
-            blue_winrate: Winrate en % para blue side
-            red_winrate: Winrate en % para red side
-            (También imprime los resultados)
-        """
-        blue_wins = 0
-        red_wins = 0
-        blue_games = 0
-        red_games = 0
-
-        for player in players_data:
-            if player['side'] == 'blue':
-                blue_games += 1
-                if player['win']:
-                    blue_wins += 1
-            else:  # 'red' side
-                red_games += 1
-                if player['win']:
-                    red_wins += 1
-
-        blue_winrate = round((blue_wins / blue_games) * 100, 2) if blue_games > 0 else 0
-        red_winrate = round((red_wins / red_games) * 100, 2) if red_games > 0 else 0
-
-        st.write(f"📊 Winrate Global por Side:")
-        st.write(f"🔵 Blue Side: {blue_winrate}% ({blue_wins}/{blue_games} partidas ganadas)")
-        st.write(f"🔴 Red Side: {red_winrate}% ({red_wins}/{red_games} partidas ganadas)")
-        
-        return blue_winrate, red_winrate
-
-    # Botón para calcular winrate por side
-    if st.button("📊 Calcular Winrate por Side"):
-        if 'combined_df' in globals():
-            players_data = combined_df.to_dict('records')
-            calculate_winrate(players_data)
-        else:
-            st.warning("Primero carga los datos JSON")
+   
 
     # Inicializar session_state si no existe
     if "filters_applied" not in st.session_state:
